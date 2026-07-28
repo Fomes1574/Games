@@ -24,5 +24,8 @@ test('a ação principal responde ao teclado', async ({ page }) => {
   await action.focus();
   await page.keyboard.press('Enter');
 
-  await expect(action).toHaveAttribute('data-acknowledged', 'true');
+  await expect(page.locator('#primary-action')).toHaveAttribute(
+    'data-acknowledged',
+    'true',
+  );
 });
