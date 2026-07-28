@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "id": "boot.background.procedural",
+      "kind": "procedural",
+      "status": "placeholder",
+      "required": true,
+      "source": "src/game/scenes/BootScene.ts"
+    }
+  ]
+}
