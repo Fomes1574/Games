@@ -1,0 +1,19 @@
+# Arquitetura técnica
+
+## Camadas
+
+1. `core`: RNG, tempo, matemática, eventos e validação.
+2. `domain`: combate, ondas, progressão, economia e save; TypeScript puro.
+3. `game`: Phaser, renderização, input, áudio, câmera e sincronização.
+4. `ui`: menus HTML/CSS e acessibilidade.
+5. `services`: IndexedDB, assets e telemetria.
+
+As Scenes orquestram adaptadores; não calculam regras de dano ou progressão. Conteúdo é data-driven e validado antes do build.
+
+## Simulação
+
+Passo fixo com acumulador limitado evita alterações de combate por FPS e espirais após perda de foco. Todos os sistemas recebem RNG com semente; `Math.random()` é proibido no domínio.
+
+## Hospedagem
+
+SPA sem rotas de servidor, `base` `/Games/`, assets relativos ao `import.meta.env.BASE_URL` e deploy estático pelo GitHub Pages.
