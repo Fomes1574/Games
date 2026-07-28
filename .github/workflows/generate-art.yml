@@ -1,0 +1,27 @@
+name: Generate Art
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Maximum number of images
+        required: true
+        default: '1'
+
+permissions:
+  contents: read
+
+jobs:
+  plan-only:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run assets:plan -- --limit "${{ inputs.limit }}"
+
+  # Paid generation remains intentionally disabled until a protected
+  # environment and explicit budget approval are configured.
