@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A Última Companhia — um survivors-like 2D de fantasia sombria."
+    />
+    <meta name="theme-color" content="#090b10" />
+    <title>A Última Companhia</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#primary-action">Ir para a ação principal</a>
+    <main id="app" aria-live="polite">
+      <section id="game-shell" aria-label="A Última Companhia">
+        <div id="game-root" aria-label="Cena animada do jogo"></div>
+        <div class="vignette" aria-hidden="true"></div>
+        <div class="landing">
+          <p class="eyebrow">A noite tomou todos os reinos</p>
+          <h1>A Última<br /><span>Companhia</span></h1>
+          <p class="intro">
+            Reúna os últimos aventureiros. Atravesse regiões corrompidas.
+            Volte com poder suficiente para manter a guilda viva.
+          </p>
+          <button id="primary-action" class="primary-action" type="button">
+            Preparar expedição
+          </button>
+          <p id="build-label" class="build-label">Carregando o mundo…</p>
+        </div>
+        <aside class="status-card" aria-label="Estado do primeiro marco">
+          <span class="status-dot" aria-hidden="true"></span>
+          <div>
+            <strong>Marco I — O Primeiro Fogo</strong>
+            <small>Infraestrutura e publicação</small>
+          </div>
+        </aside>
+      </section>
+    </main>
+    <noscript>Este jogo precisa de JavaScript habilitado.</noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
