@@ -80,13 +80,13 @@
                 <p class="card-kicker">Aventureiro disponível</p>
                 <h3>Brutamontes</h3>
                 <p>
-                  Um sobrevivente de armadura pesada. Fica mais resistente quando
-                  cercado e começa com o Machado do Carrasco.
+                  Um combatente brutal e mortal. Começa com o Machado do Carrasco
+                  e precisa enfrentar a horda de frente.
                 </p>
                 <ul>
-                  <li>160 de vida inicial</li>
-                  <li>Resistência cresce perto da horda</li>
-                  <li>Golpe circular automático</li>
+                  <li>80 de vida inicial</li>
+                  <li>5 de armadura</li>
+                  <li>Golpe frontal em arco</li>
                 </ul>
               </div>
             </article>
@@ -148,7 +148,7 @@
             <div class="health-block">
               <div class="hud-label-row">
                 <strong>Brutamontes</strong>
-                <span id="health-text">160 / 160</span>
+                <span id="health-text">80 / 80</span>
               </div>
               <div class="bar health-bar"><i id="health-fill"></i></div>
             </div>
@@ -157,6 +157,7 @@
               <strong id="timer-text">05:00</strong>
             </div>
             <div class="combat-stats">
+              <span><b id="armor-text">5</b> armadura</span>
               <span><b id="kill-count">0</b> abatidos</span>
               <span><b id="enemy-count">0</b> na horda</span>
             </div>
@@ -176,8 +177,8 @@
         </section>
 
         <section id="upgrade-panel" class="modal-card upgrade-panel" hidden>
-          <p class="eyebrow">A noite cede diante de você</p>
-          <h2>Escolha seu próximo poder</h2>
+          <p class="eyebrow">Nível alcançado</p>
+          <h2>Escolha uma melhoria</h2>
           <p id="pending-levels" class="modal-copy"></p>
           <div id="upgrade-choices" class="upgrade-choices"></div>
           <small>Teclas 1, 2 ou 3 · controle e mouse</small>

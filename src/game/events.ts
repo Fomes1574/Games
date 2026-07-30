@@ -12,6 +12,7 @@ export const GAME_EVENTS = {
 export interface HudDetail {
   health: number;
   maximumHealth: number;
+  armor: number;
   experience: number;
   experienceForNext: number;
   level: number;
@@ -27,6 +28,7 @@ export interface HudDetail {
 export interface UpgradeDetail {
   choices: UpgradeDefinition[];
   pendingLevels: number;
+  levels: Partial<Record<UpgradeId, number>>;
 }
 
 export interface ResultDetail {

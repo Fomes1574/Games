@@ -1,14 +1,33 @@
-import { UPGRADES, type UpgradeDefinition, type UpgradeId } from '../../data/content';
+import {
+  UPGRADES,
+  type UpgradeDefinition,
+  type UpgradeId,
+  type WeaponId,
+} from '../../data/content';
 import type { SeededRng } from '../../core/rng/SeededRng';
 
 export type UpgradeLevels = Partial<Record<UpgradeId, number>>;
 
+export interface UpgradeAvailabilityOptions {
+  evolutionsUnlocked?: boolean;
+  maximumWeapons?: number;
+}
+
 export function isUpgradeAvailable(
   definition: UpgradeDefinition,
   levels: UpgradeLevels,
+  options: UpgradeAvailabilityOptions = {},
 ): boolean {
   const current = levels[definition.id] ?? 0;
   if (current >= definition.maxLevel) {
+    return false;
+  }
+
+  if (
+    definition.kind === 'weapon' &&
+    current === 0 &&
+    countOwnedWeapons(levels) >= (options.maximumWeapons ?? 4)
+  ) {
     return false;
   }
 
@@ -16,9 +35,13 @@ export function isUpgradeAvailable(
     return true;
   }
 
+  if (options.evolutionsUnlocked === false) {
+    return false;
+  }
+
   return (
     (levels[definition.requires.weapon] ?? 0) >= definition.requires.weaponLevel &&
-    (levels[definition.requires.passive] ?? 0) >= 1
+    (levels[definition.requires.passive] ?? 0) >= definition.requires.passiveLevel
   );
 }
 
@@ -26,8 +49,11 @@ export function createUpgradeChoices(
   levels: UpgradeLevels,
   rng: SeededRng,
   count = 3,
+  options: UpgradeAvailabilityOptions = {},
 ): UpgradeDefinition[] {
-  const available = UPGRADES.filter((definition) => isUpgradeAvailable(definition, levels));
+  const available = UPGRADES.filter((definition) =>
+    isUpgradeAvailable(definition, levels, options),
+  );
   const choices: UpgradeDefinition[] = [];
   const remaining = [...available];
 
@@ -59,4 +85,14 @@ export function applyUpgrade(levels: UpgradeLevels, id: UpgradeId): UpgradeLevel
     ...levels,
     [id]: (levels[id] ?? 0) + 1,
   };
+}
+
+export function countOwnedWeapons(levels: UpgradeLevels): number {
+  return (
+    UPGRADES.filter(
+      (definition) =>
+        definition.kind === 'weapon' &&
+        (levels[definition.id as WeaponId] ?? 0) > 0,
+    ).length
+  );
 }

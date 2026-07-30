@@ -1,9 +1,30 @@
 {
   "version": 1,
   "characters": ["brutamontes"],
-  "weapons": ["executioner-axe", "watch-crossbow", "funeral-bell"],
+  "weapons": [
+    "executioner-axe",
+    "watch-crossbow",
+    "celestial-aura",
+    "widow-venom",
+    "spear",
+    "ash-lantern"
+  ],
   "passives": ["runic-plate", "fallen-vigor", "hunter-steps"],
-  "evolutions": ["carnage-wheel", "piercing-oath", "iron-requiem"],
-  "enemies": ["crawler", "runner", "cultist", "corrupted-executioner"],
+  "evolutions": [
+    "barbarian-fury",
+    "piercing-oath",
+    "divine-aura",
+    "black-widow",
+    "impaler",
+    "hell-steps"
+  ],
+  "enemies": [
+    "crawler",
+    "runner",
+    "cultist",
+    "armored-penitent",
+    "ruin-herald",
+    "corrupted-executioner"
+  ],
   "bosses": ["plague-bishop"]
 }

@@ -17,3 +17,7 @@ Build de 2026-07-30: HTML 3,47 kB gzip, CSS 4,98 kB gzip e JavaScript 371,15 kB 
 ## Baseline de controles e game over 0.3.0
 
 Build de 2026-07-30: HTML 3,87 kB gzip, CSS 5,70 kB gzip e JavaScript 373,28 kB gzip. A diferença inclui remapeamento persistente, animação procedural de morte e a tela de game over. O alerta de chunk inicial permanece ligado ao Phaser e continua registrado para divisão no marco de desempenho.
+
+## Baseline de combate e formações 0.4.0
+
+Build de 2026-07-30: HTML 3,86 kB gzip, CSS 5,92 kB gzip e JavaScript 379,59 kB gzip. A diferença inclui seis armas, seis evoluções, efeitos de estado, cura, formações temporizadas e novos inimigos. A simulação determinística cobre 236 inimigos agendados; a medição de p95/p99 com as metas de 250, 500 e 1.000 entidades continua reservada ao marco de desempenho.

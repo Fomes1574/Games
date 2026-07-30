@@ -10,6 +10,8 @@
 
 As Scenes orquestram adaptadores; não calculam regras de dano ou progressão. Conteúdo é data-driven e validado antes do build.
 
+`domain/weapons` contém tabelas tipadas de nível; `domain/encounters` contém o cronograma; `domain/combat/statusEffects` limita propagação, vulnerabilidade e lentidão. A Scene adapta essas decisões ao Phaser. Perfis visuais em `src/data/content.ts` permitem trocar placeholders por sprites e atlas sem alterar as regras.
+
 ## Simulação
 
 Passo fixo com acumulador limitado evita alterações de combate por FPS e espirais após perda de foco. Todos os sistemas recebem RNG com semente; `Math.random()` é proibido no domínio.

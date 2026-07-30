@@ -7,4 +7,6 @@
 - Balanceamento: centenas de sementes por arquétipo.
 - Desempenho: cenários normal, intenso e estresse.
 
+Na versão 0.4, unitários verificam cronograma, metade da duração do veneno transferido, vulnerabilidade sem autoamplificação, lentidão menor no chefe, limites de armas e níveis posteriores. Playwright confirma 80/5, cartas compactas e a formação dos 30 segundos sem modal.
+
 E2E falha em exceção, console crítico, 404, canvas ausente, tela preta ou carregamento infinito. Falhas preservam trace, screenshot, vídeo e estado.

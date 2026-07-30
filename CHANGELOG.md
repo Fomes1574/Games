@@ -2,6 +2,27 @@
 
 Todas as mudanças relevantes serão registradas neste arquivo.
 
+## 0.4.0 — 2026-07-30
+
+### Adicionado
+
+- Eventos determinísticos aos 30, 60, 90, 105, 135, 165, 195, 205 e 225 segundos, sem títulos ou interrupções.
+- Peçonha da Viúva, Lança e Lanterna de Cinzas, totalizando seis armas.
+- Fúria Bárbara, Aura Divina, Viúva Negra, Empaladora e Passos do Inferno com dois níveis posteriores.
+- Penitente Blindado, Arauto da Ruína e fragmentos de cura coletáveis.
+- Simulação executável de limites de dano, fragilidade, lentidão, vulnerabilidade e cronograma.
+- Perfis visuais independentes das regras para futura substituição dos placeholders por sprites.
+
+### Alterado
+
+- Brutamontes agora começa com 80 de vida, 5 de armadura e sem resistência por proximidade.
+- Machado do Carrasco atinge apenas um arco frontal; Fúria Bárbara executa dois giros completos.
+- Sino Fúnebre passou a se chamar Aura Celestial; Aura Divina cria uma área constante transparente com dano e lentidão reduzida em chefes.
+- O veneno transferido dura metade do tempo restante; Viúva Negra amplia somente dano de outras fontes.
+- Lança do Juramento passou a se chamar Lança e evolui para Empaladora.
+- A evolução da Lanterna de Cinzas passou a se chamar Passos do Inferno.
+- Cartas de melhoria mostram nível e valores atuais/próximos em uma interface mais compacta.
+
 ## 0.3.0 — 2026-07-30
 
 ### Adicionado

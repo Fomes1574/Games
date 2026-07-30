@@ -67,9 +67,54 @@ test('inicia uma partida real e o cenário acompanha o personagem', async ({ pag
   expect(after?.scene).toBe('expedition');
   if (before?.scene === 'expedition' && after?.scene === 'expedition') {
     expect(after.seed).toBe(1574);
+    expect(after.health).toBe(80);
+    expect(after.maximumHealth).toBe(80);
+    expect(after.armor).toBe(5);
     expect(after.playerPosition.x).toBeGreaterThan(before.playerPosition.x);
     expect(after.parallaxOffset.x).not.toBe(before.parallaxOffset.x);
   }
+});
+
+test('mostra melhorias compactas com valores reais', async ({ page }) => {
+  await page.goto('');
+  await page.getByRole('button', { name: 'Preparar expedição' }).click();
+  await page.getByRole('button', { name: 'Assinar contrato e partir' }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.__GAME_TEST_API__?.getState().scene ?? 'loading'),
+    )
+    .toBe('expedition');
+
+  await page.evaluate(() => window.__GAME_TEST_API__?.grantExperience(40));
+
+  await expect(
+    page.getByRole('heading', { name: 'Escolha uma melhoria' }),
+  ).toBeVisible();
+  await expect(page.locator('.upgrade-card')).toHaveCount(3);
+  await expect(page.locator('.upgrade-stats').first()).toBeVisible();
+  await expect(page.locator('.upgrade-effect').first()).not.toContainText('por nível');
+});
+
+test('aciona a primeira formação pelo relógio sem abrir anúncio', async ({ page }) => {
+  await page.goto('');
+  await page.getByRole('button', { name: 'Preparar expedição' }).click();
+  await page.getByRole('button', { name: 'Assinar contrato e partir' }).click();
+  await expect
+    .poll(() =>
+      page.evaluate(() => window.__GAME_TEST_API__?.getState().scene ?? 'loading'),
+    )
+    .toBe('expedition');
+
+  const before = await page.evaluate(() => window.__GAME_TEST_API__?.getState());
+  await page.evaluate(() => window.__GAME_TEST_API__?.setElapsedSeconds(29.98));
+  await page.waitForTimeout(500);
+  const after = await page.evaluate(() => window.__GAME_TEST_API__?.getState());
+
+  if (before?.scene === 'expedition' && after?.scene === 'expedition') {
+    expect(after.enemies - before.enemies).toBeGreaterThanOrEqual(12);
+  }
+  await expect(page.locator('#upgrade-panel')).toBeHidden();
+  await expect(page.locator('#pause-panel')).toBeHidden();
 });
 
 test('remapeia o movimento e preserva a escolha no navegador', async ({ page }) => {

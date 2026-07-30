@@ -7,6 +7,8 @@ export interface GameTestApi {
   getState(): GameSnapshot | { scene: 'menu' };
   chooseUpgrade(id: UpgradeId): void;
   spawnBoss(): void;
+  setElapsedSeconds(seconds: number): void;
+  grantExperience(amount: number): void;
   forceVictory(): void;
   forceDefeat(): void;
 }
@@ -30,6 +32,8 @@ export function installGameTestApi(
     getState: () => getScene()?.getSnapshot() ?? { scene: 'menu' },
     chooseUpgrade: (id) => getScene()?.chooseUpgrade(id),
     spawnBoss: () => getScene()?.debugSpawnBoss(),
+    setElapsedSeconds: (seconds) => getScene()?.debugSetElapsedSeconds(seconds),
+    grantExperience: (amount) => getScene()?.debugGrantExperience(amount),
     forceVictory: () => getScene()?.debugVictory(),
     forceDefeat: () => getScene()?.debugDefeat(),
   };

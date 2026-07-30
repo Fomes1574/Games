@@ -2,7 +2,7 @@
 
 Survivors-like 2D dark fantasy para navegador. O jogador comanda uma das últimas guildas vivas em um mundo de noite permanente, envia aventureiros a expedições e retorna com recursos para ampliar suas possibilidades.
 
-> Estado atual: versão 0.3 — primeira fatia vertical jogável. Há sala de preparação, controles remapeáveis, Brutamontes, partida de cinco minutos, três armas, três passivas, três evoluções, hordas, elites, chefe, animação de morte, game over, vitória/derrota, guilda e save local.
+> Estado atual: versão 0.4 — fatia vertical jogável com eventos cronometrados silenciosos, seis armas, seis evoluções, inimigos de suporte e defesa, cura em campo, controles remapeáveis, morte, game over, chefe, guilda e save local.
 
 ## Executar
 
@@ -58,5 +58,7 @@ O jogo é totalmente estático. Não existem chaves ou APIs privadas no navegado
 4. Escolha **Assinar contrato e partir**.
 5. Mova-se com WASD, setas ou controle; as armas atacam automaticamente.
 6. Em **Configurações**, selecione qualquer direção e pressione uma nova tecla para remapear o movimento. Esc permanece reservado para pausa.
+
+O Brutamontes começa com 80 de vida, 5 de armadura e nenhuma resistência oculta por estar cercado. O limite inicial é de quatro armas por build.
 
 Licença ainda não definida; não reutilize código ou arte sem autorização do proprietário.

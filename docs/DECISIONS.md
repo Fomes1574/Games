@@ -15,3 +15,11 @@ Phaser renderiza o mundo; HTML/CSS atende menus e acessibilidade. Regras permane
 ## ADR-004 — Placeholder procedural primeiro
 
 A primeira página usa formas procedurais, pois o documento exige provar build e Pages antes de produção visual em massa.
+
+## ADR-005 — Combate legível sem anúncios de evento
+
+Eventos especiais usam horários fixos e formações determinísticas, mas não exibem título, banner ou texto. Apenas telegráficos próprios dos ataques permanecem visíveis.
+
+## ADR-006 — Evolução curta para a partida de cinco minutos
+
+Armas possuem cinco níveis, uma transformação condicionada a passiva nível 3 e elite derrotado, e dois níveis posteriores. A build aceita quatro armas para preservar escolhas entre as seis disponíveis.

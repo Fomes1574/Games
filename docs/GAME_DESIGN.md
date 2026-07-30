@@ -9,8 +9,8 @@ Fluxo: guilda → personagem → contrato → expedição → níveis/evoluçõe
 ## Fatia vertical
 
 - Partida de cinco minutos, um mapa e Brutamontes.
-- Três armas, três passivas e três evoluções.
-- Três inimigos comuns, uma elite e Bispo da Peste.
+- Seis armas, três passivas e seis evoluções.
+- Cinco inimigos comuns/especiais, uma elite e Bispo da Peste.
 - Vitória, derrota, resultados, uma construção e save.
 
 ## Primeira versão
@@ -24,3 +24,11 @@ Três personagens (Brutamontes, Piromante e Necromante), doze armas, doze passiv
 - Perigos do chefe são anunciados e legíveis.
 - Partida completa possui semente, resultado e telemetria reprodutíveis.
 - Progresso permanente abre escolhas sem criar invulnerabilidade.
+
+## Regras da fatia 0.4
+
+- Brutamontes: 80 de vida, 5 de armadura e nenhuma resistência automática por cerco.
+- Quatro armas no máximo por build, cinco níveis básicos, evolução e dois níveis posteriores.
+- Evoluções exigem arma nível 5, passiva relacionada nível 3 e ao menos um elite derrotado.
+- Eventos de horda acontecem pelo relógio determinístico sem título, banner ou pausa.
+- Cura vem de até quatro fragmentos deixados por elites e inimigos de suporte; não existe regeneração automática.

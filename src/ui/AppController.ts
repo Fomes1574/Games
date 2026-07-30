@@ -17,6 +17,7 @@ import {
   type ResultDetail,
   type UpgradeDetail,
 } from '../game/events';
+import { createUpgradePreview } from '../domain/upgrades/upgradePresentation';
 import type { ExpeditionScene } from '../game/scenes/ExpeditionScene';
 import { withChecksum, type GameSave } from '../domain/saving/saveModel';
 import { SaveService } from '../services/storage/SaveService';
@@ -238,6 +239,7 @@ export class AppController {
     element<HTMLElement>('level-text').textContent = String(detail.level);
     element<HTMLElement>('kill-count').textContent = String(detail.kills);
     element<HTMLElement>('enemy-count').textContent = String(detail.enemies);
+    element<HTMLElement>('armor-text').textContent = String(detail.armor);
     element<HTMLElement>('weapon-list').textContent = detail.weapons.join(' · ');
     element<HTMLElement>('timer-text').textContent = this.formatTime(
       Math.max(0, detail.durationSeconds - detail.elapsedSeconds),
@@ -255,6 +257,7 @@ export class AppController {
     const choices = element<HTMLElement>('upgrade-choices');
     choices.replaceChildren();
     detail.choices.forEach((upgrade, index) => {
+      const preview = createUpgradePreview(upgrade.id, detail.levels);
       const button = document.createElement('button');
       button.className = `upgrade-card upgrade-${upgrade.kind}`;
       button.type = 'button';
@@ -264,26 +267,40 @@ export class AppController {
       number.className = 'choice-number';
       number.textContent = String(index + 1);
       const kind = document.createElement('small');
+      kind.className = 'upgrade-kind';
       kind.textContent =
         upgrade.kind === 'weapon'
           ? 'Arma'
           : upgrade.kind === 'passive'
             ? 'Passiva'
             : 'Evolução';
+      const tier = document.createElement('span');
+      tier.className = 'upgrade-tier';
+      tier.textContent = preview.tier;
       const title = document.createElement('strong');
-      title.textContent = upgrade.name;
+      title.textContent = preview.name;
       const description = document.createElement('span');
-      description.textContent = upgrade.description;
-      const detailText = document.createElement('em');
-      detailText.textContent = upgrade.detail;
-      button.append(number, kind, title, description, detailText);
+      description.className = 'upgrade-effect';
+      description.textContent = preview.effect;
+      const stats = document.createElement('span');
+      stats.className = 'upgrade-stats';
+      preview.stats.forEach((stat) => {
+        const item = document.createElement('span');
+        const label = document.createElement('small');
+        const value = document.createElement('b');
+        label.textContent = stat.label;
+        value.textContent = stat.value;
+        item.append(label, value);
+        stats.append(item);
+      });
+      button.append(number, kind, tier, title, description, stats);
       button.addEventListener('click', () => this.selectUpgrade(upgrade.id));
       choices.append(button);
     });
     element<HTMLElement>('pending-levels').textContent =
       detail.pendingLevels > 1
-        ? `${detail.pendingLevels} escolhas aguardam sua decisão.`
-        : 'A simulação está pausada enquanto você decide.';
+        ? `${detail.pendingLevels} escolhas restantes`
+        : '';
     this.upgradePanel.hidden = false;
     choices.querySelector<HTMLButtonElement>('button')?.focus();
   }

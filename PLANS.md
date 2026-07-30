@@ -36,7 +36,7 @@ Regra permanente: se uma validação falhar, corrigir e executá-la novamente an
 - Estado: fatia publicada; encerramento completo de cinco minutos ainda precisa de um cenário automatizado.
 - Objetivo: Brutamontes, três armas, três passivas, três evoluções, três inimigos, elite, chefe, guilda e save.
 - Validação: partida real completa, importação/exportação e deploy verificado.
-- Resultado: sala de preparação simplificada, controles remapeáveis, Brutamontes, três armas/passivas/evoluções, três inimigos, elite, Bispo da Peste, animação de morte, game over, guilda e save.
+- Resultado: sala de preparação simplificada, controles remapeáveis, Brutamontes frágil, seis armas/evoluções, cinco inimigos comuns/especiais, eventos cronometrados, cura, elite, Bispo da Peste, animação de morte, game over, guilda e save.
 - Aceite: início, movimento padrão/remapeado, persistência dos controles, morte, game over e parallax cobertos por Playwright; deploy aprovado no GitHub Pages. A automação da partida completa permanece para concluir o marco.
 
 ## M4 — Pipeline visual
