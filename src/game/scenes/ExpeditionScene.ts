@@ -133,6 +133,7 @@ export class ExpeditionScene extends Phaser.Scene {
   private ended = false;
   private phase: 'active' | 'dying' | 'ended' = 'active';
   private reducedEffects = false;
+  private deathTimeout?: number;
   private bossSpawned = false;
   private nextEnemyId = 1;
   private axeCooldown = 0;
@@ -247,6 +248,10 @@ export class ExpeditionScene extends Phaser.Scene {
   }
 
   private resetState(data: ExpeditionData): void {
+    if (this.deathTimeout !== undefined) {
+      window.clearTimeout(this.deathTimeout);
+      this.deathTimeout = undefined;
+    }
     this.seed =
       typeof data.seed === 'number' && Number.isFinite(data.seed)
         ? Math.max(1, Math.floor(data.seed))
@@ -1127,10 +1132,11 @@ export class ExpeditionScene extends Phaser.Scene {
       this.spawnDeathShards(player.x, player.y, duration);
     }
 
-    this.time.delayedCall(duration, () => {
+    this.deathTimeout = window.setTimeout(() => {
+      this.deathTimeout = undefined;
       this.phase = 'ended';
       this.dispatchResult('defeat');
-    });
+    }, duration);
   }
 
   private spawnDeathShards(x: number, y: number, duration: number): void {
@@ -1250,6 +1256,10 @@ export class ExpeditionScene extends Phaser.Scene {
     this.input.keyboard?.off('keydown', this.handleKeyboardDown);
     this.input.keyboard?.off('keyup', this.handleKeyboardUp);
     this.pressedKeyboardCodes.clear();
+    if (this.deathTimeout !== undefined) {
+      window.clearTimeout(this.deathTimeout);
+      this.deathTimeout = undefined;
+    }
     this.projectiles.forEach((projectile) => projectile.shape.destroy());
     this.pickups.forEach((pickup) => pickup.shape.destroy());
     this.hazards.forEach((hazard) => hazard.shape.destroy());

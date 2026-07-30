@@ -16,6 +16,7 @@ Todas as mudanças relevantes serão registradas neste arquivo.
 
 - A sala de preparação ficou mais limpa com a remoção do stepper textual de aventureiro, contrato e partida.
 - Setas e analógico continuam disponíveis junto das teclas personalizadas.
+- A transição para o game over usa tempo real e não fica presa se o renderizador perder frames.
 
 ## 0.2.0 — 2026-07-30
 

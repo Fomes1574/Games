@@ -16,4 +16,4 @@ Build de 2026-07-30: HTML 3,47 kB gzip, CSS 4,98 kB gzip e JavaScript 371,15 kB 
 
 ## Baseline de controles e game over 0.3.0
 
-Build de 2026-07-30: HTML 3,88 kB gzip, CSS 5,70 kB gzip e JavaScript 373,25 kB gzip. A diferença inclui remapeamento persistente, animação procedural de morte e a tela de game over. O alerta de chunk inicial permanece ligado ao Phaser e continua registrado para divisão no marco de desempenho.
+Build de 2026-07-30: HTML 3,87 kB gzip, CSS 5,70 kB gzip e JavaScript 373,28 kB gzip. A diferença inclui remapeamento persistente, animação procedural de morte e a tela de game over. O alerta de chunk inicial permanece ligado ao Phaser e continua registrado para divisão no marco de desempenho.

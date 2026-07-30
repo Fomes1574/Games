@@ -107,6 +107,8 @@ test('remapeia o movimento e preserva a escolha no navegador', async ({ page }) 
 });
 
 test('anima a morte antes de mostrar o game over e o relatório', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
   await page.goto('');
   await page.getByRole('button', { name: 'Preparar expedição' }).click();
   await page.getByRole('button', { name: 'Assinar contrato e partir' }).click();
@@ -142,4 +144,5 @@ test('anima a morte antes de mostrar o game over e o relatório', async ({ page 
   await expect(
     page.getByRole('heading', { name: 'Expedição perdida' }),
   ).toBeVisible();
+  expect(errors).toEqual([]);
 });
