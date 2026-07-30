@@ -10,6 +10,14 @@ import {
 } from '../../data/content';
 import { resolveDamage } from '../../domain/combat/damage';
 import {
+  ARROW_MOVEMENT_BINDINGS,
+  DEFAULT_MOVEMENT_BINDINGS,
+  MOVEMENT_DIRECTIONS,
+  usesArrowBindings,
+  type MovementBindings,
+  type MovementDirection,
+} from '../../domain/input/movementBindings';
+import {
   addExperience,
   experienceRequired,
 } from '../../domain/progression/experience';
@@ -29,6 +37,8 @@ import {
 interface ExpeditionData {
   seed?: number;
   forgeLevel?: number;
+  movementBindings?: MovementBindings;
+  reducedEffects?: boolean;
 }
 
 interface EnemyActor {
@@ -121,22 +131,16 @@ export class ExpeditionScene extends Phaser.Scene {
   private awaitingUpgrade = false;
   private pausedByUser = false;
   private ended = false;
+  private phase: 'active' | 'dying' | 'ended' = 'active';
+  private reducedEffects = false;
   private bossSpawned = false;
   private nextEnemyId = 1;
   private axeCooldown = 0;
   private crossbowCooldown = 0;
   private bellCooldown = 0;
   private inputMode: 'keyboard' | 'gamepad' = 'keyboard';
-  private movementKeys?: {
-    up: Phaser.Input.Keyboard.Key;
-    down: Phaser.Input.Keyboard.Key;
-    left: Phaser.Input.Keyboard.Key;
-    right: Phaser.Input.Keyboard.Key;
-    upAlt: Phaser.Input.Keyboard.Key;
-    downAlt: Phaser.Input.Keyboard.Key;
-    leftAlt: Phaser.Input.Keyboard.Key;
-    rightAlt: Phaser.Input.Keyboard.Key;
-  };
+  private movementBindings: MovementBindings = { ...DEFAULT_MOVEMENT_BINDINGS };
+  private readonly pressedKeyboardCodes = new Set<string>();
 
   public constructor() {
     super('expedition');
@@ -212,6 +216,13 @@ export class ExpeditionScene extends Phaser.Scene {
         x: this.parallaxOffsetX,
         y: this.parallaxOffsetY,
       },
+      playerVisual: {
+        rotation: this.player?.rotation ?? 0,
+        scaleX: this.player?.scaleX ?? 1,
+        scaleY: this.player?.scaleY ?? 1,
+        alpha: this.player?.alpha ?? 1,
+      },
+      phase: this.phase,
       awaitingUpgrade: this.awaitingUpgrade,
       paused: this.pausedByUser,
       ended: this.ended,
@@ -228,7 +239,7 @@ export class ExpeditionScene extends Phaser.Scene {
 
   public debugDefeat(): void {
     this.stats.health = 0;
-    this.finish('defeat');
+    this.startDeathSequence();
   }
 
   public debugVictory(): void {
@@ -241,6 +252,11 @@ export class ExpeditionScene extends Phaser.Scene {
         ? Math.max(1, Math.floor(data.seed))
         : Date.now() & 0x7fff_ffff;
     this.forgeLevel = Math.max(0, Math.floor(data.forgeLevel ?? 0));
+    this.movementBindings = {
+      ...DEFAULT_MOVEMENT_BINDINGS,
+      ...data.movementBindings,
+    };
+    this.reducedEffects = data.reducedEffects === true;
     this.rng = new SeededRng(this.seed);
     this.enemies = [];
     this.projectiles = [];
@@ -271,11 +287,13 @@ export class ExpeditionScene extends Phaser.Scene {
     this.awaitingUpgrade = false;
     this.pausedByUser = false;
     this.ended = false;
+    this.phase = 'active';
     this.bossSpawned = false;
     this.nextEnemyId = 1;
     this.axeCooldown = 0;
     this.crossbowCooldown = 0;
     this.bellCooldown = 0;
+    this.pressedKeyboardCodes.clear();
   }
 
   private drawArena(): void {
@@ -394,17 +412,8 @@ export class ExpeditionScene extends Phaser.Scene {
   private configureInput(): void {
     const keyboard = this.input.keyboard;
     if (keyboard) {
-      this.movementKeys = {
-        up: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-        down: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-        left: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-        right: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-        upAlt: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
-        downAlt: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN),
-        leftAlt: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT),
-        rightAlt: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
-      };
-      keyboard.on('keydown-ESC', () => this.togglePause());
+      keyboard.on('keydown', this.handleKeyboardDown);
+      keyboard.on('keyup', this.handleKeyboardUp);
     }
   }
 
@@ -436,17 +445,12 @@ export class ExpeditionScene extends Phaser.Scene {
       return;
     }
 
-    let horizontal = 0;
-    let vertical = 0;
-    const keys = this.movementKeys;
-    if (keys) {
-      horizontal =
-        Number(keys.right.isDown || keys.rightAlt.isDown) -
-        Number(keys.left.isDown || keys.leftAlt.isDown);
-      vertical =
-        Number(keys.down.isDown || keys.downAlt.isDown) -
-        Number(keys.up.isDown || keys.upAlt.isDown);
-    }
+    let horizontal =
+      Number(this.isDirectionPressed('right')) -
+      Number(this.isDirectionPressed('left'));
+    let vertical =
+      Number(this.isDirectionPressed('down')) -
+      Number(this.isDirectionPressed('up'));
 
     const pad = this.input.gamepad?.getPad(0);
     if (pad && (Math.abs(pad.leftStick.x) > 0.18 || Math.abs(pad.leftStick.y) > 0.18)) {
@@ -986,7 +990,7 @@ export class ExpeditionScene extends Phaser.Scene {
     this.playerBody?.setFillStyle(0xe08a62, 1);
     this.time.delayedCall(80, () => this.playerBody?.setFillStyle(0xb76538, 1));
     if (this.stats.health <= 0) {
-      this.finish('defeat');
+      this.startDeathSequence();
     }
   }
 
@@ -1050,10 +1054,110 @@ export class ExpeditionScene extends Phaser.Scene {
   }
 
   private finish(outcome: ResultDetail['outcome']): void {
+    if (outcome === 'defeat') {
+      this.startDeathSequence();
+      return;
+    }
     if (this.ended) {
       return;
     }
     this.ended = true;
+    this.phase = 'ended';
+    this.dispatchResult(outcome);
+  }
+
+  private startDeathSequence(): void {
+    if (this.ended) {
+      return;
+    }
+    this.ended = true;
+    this.phase = 'dying';
+    this.awaitingUpgrade = false;
+    this.pausedByUser = false;
+    this.pressedKeyboardCodes.clear();
+    dispatchGameEvent(GAME_EVENTS.pause, { paused: false });
+    dispatchGameEvent(GAME_EVENTS.death, { phase: 'dying' });
+    this.emitHud();
+
+    const duration = this.reducedEffects ? 320 : 1_450;
+    const player = this.player;
+    if (player) {
+      const pulse = this.add
+        .circle(player.x, player.y, 46, 0x6e1f25, 0.2)
+        .setStrokeStyle(5, 0xb84c42, 0.75)
+        .setDepth(45);
+      const soul = this.add
+        .circle(player.x, player.y - 12, 11, 0xd6c4ae, 0.85)
+        .setDepth(55)
+        .setBlendMode(Phaser.BlendModes.ADD);
+
+      this.playerBody?.setFillStyle(0x2a2024, 1);
+      if (!this.reducedEffects) {
+        this.cameras.main.shake(240, 0.006);
+        this.cameras.main.flash(180, 105, 21, 26);
+      }
+      this.tweens.add({
+        targets: pulse,
+        scaleX: this.reducedEffects ? 1.25 : 3.4,
+        scaleY: this.reducedEffects ? 1.25 : 3.4,
+        alpha: 0,
+        duration: Math.round(duration * 0.72),
+        ease: 'Cubic.Out',
+        onComplete: () => pulse.destroy(),
+      });
+      this.tweens.add({
+        targets: soul,
+        y: soul.y - (this.reducedEffects ? 20 : 110),
+        alpha: 0,
+        scaleX: 0.45,
+        scaleY: 1.7,
+        duration,
+        ease: 'Sine.In',
+        onComplete: () => soul.destroy(),
+      });
+      this.tweens.add({
+        targets: player,
+        rotation: player.rotation + Math.PI * 0.56,
+        scaleX: 1.22,
+        scaleY: 0.24,
+        alpha: 0.24,
+        duration,
+        ease: 'Cubic.In',
+      });
+      this.spawnDeathShards(player.x, player.y, duration);
+    }
+
+    this.time.delayedCall(duration, () => {
+      this.phase = 'ended';
+      this.dispatchResult('defeat');
+    });
+  }
+
+  private spawnDeathShards(x: number, y: number, duration: number): void {
+    const count = this.reducedEffects ? 3 : 12;
+    for (let index = 0; index < count; index += 1) {
+      const angle = (Math.PI * 2 * index) / count + this.rng.next() * 0.25;
+      const distance = this.reducedEffects
+        ? this.rng.integer(20, 42)
+        : this.rng.integer(65, 150);
+      const shard = this.add
+        .rectangle(x, y, this.rng.integer(3, 7), this.rng.integer(8, 17), 0xb85f46, 0.9)
+        .setDepth(54)
+        .setRotation(angle);
+      this.tweens.add({
+        targets: shard,
+        x: x + Math.cos(angle) * distance,
+        y: y + Math.sin(angle) * distance,
+        rotation: angle + Math.PI,
+        alpha: 0,
+        duration: Math.round(duration * (0.55 + this.rng.next() * 0.35)),
+        ease: 'Quad.Out',
+        onComplete: () => shard.destroy(),
+      });
+    }
+  }
+
+  private dispatchResult(outcome: ResultDetail['outcome']): void {
     const result: ResultDetail = {
       outcome,
       elapsedSeconds: Math.min(this.elapsed, RUN_DURATION_SECONDS),
@@ -1065,6 +1169,46 @@ export class ExpeditionScene extends Phaser.Scene {
     };
     dispatchGameEvent(GAME_EVENTS.result, result);
   }
+
+  private isDirectionPressed(direction: MovementDirection): boolean {
+    if (this.pressedKeyboardCodes.has(this.movementBindings[direction])) {
+      return true;
+    }
+    return (
+      !usesArrowBindings(this.movementBindings) &&
+      this.pressedKeyboardCodes.has(ARROW_MOVEMENT_BINDINGS[direction])
+    );
+  }
+
+  private isMovementCode(code: string): boolean {
+    if (Object.values(this.movementBindings).includes(code)) {
+      return true;
+    }
+    return (
+      !usesArrowBindings(this.movementBindings) &&
+      Object.values(ARROW_MOVEMENT_BINDINGS).includes(code)
+    );
+  }
+
+  private readonly handleKeyboardDown = (event: KeyboardEvent): void => {
+    if (this.isMovementCode(event.code)) {
+      event.preventDefault();
+      this.pressedKeyboardCodes.add(event.code);
+    }
+    if (
+      event.code === 'Escape' &&
+      !event.repeat &&
+      !MOVEMENT_DIRECTIONS.some(
+        (direction) => this.movementBindings[direction] === 'Escape',
+      )
+    ) {
+      this.togglePause();
+    }
+  };
+
+  private readonly handleKeyboardUp = (event: KeyboardEvent): void => {
+    this.pressedKeyboardCodes.delete(event.code);
+  };
 
   private emitHud(): void {
     dispatchGameEvent(GAME_EVENTS.hud, this.createHudDetail());
@@ -1103,7 +1247,9 @@ export class ExpeditionScene extends Phaser.Scene {
 
   private readonly handleShutdown = (): void => {
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
-    this.input.keyboard?.off('keydown-ESC');
+    this.input.keyboard?.off('keydown', this.handleKeyboardDown);
+    this.input.keyboard?.off('keyup', this.handleKeyboardUp);
+    this.pressedKeyboardCodes.clear();
     this.projectiles.forEach((projectile) => projectile.shape.destroy());
     this.pickups.forEach((pickup) => pickup.shape.destroy());
     this.hazards.forEach((hazard) => hazard.shape.destroy());

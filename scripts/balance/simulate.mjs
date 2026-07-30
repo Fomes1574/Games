@@ -3,8 +3,9 @@ import { resolve } from 'node:path';
 
 const report = {
   version: 1,
-  status: 'not-applicable',
-  reason: 'O núcleo de combate começa no Marco 2.',
+  status: 'pending-full-run',
+  reason:
+    'A fatia jogável existe; a simulação massiva será ativada no marco de balanceamento.',
   simulations: 0,
 };
 const reportDirectory = resolve(process.cwd(), 'reports/balance');
@@ -14,4 +15,4 @@ await writeFile(
   resolve(reportDirectory, 'summary.json'),
   `${JSON.stringify(report, null, 2)}\n`,
 );
-console.log('Simulador preparado; nenhuma partida simulada antes do Marco 2.');
+console.log('Simulador preparado; a execução massiva pertence ao marco de balanceamento.');

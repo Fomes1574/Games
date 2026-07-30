@@ -2,6 +2,21 @@
 
 Todas as mudanças relevantes serão registradas neste arquivo.
 
+## 0.3.0 — 2026-07-30
+
+### Adicionado
+
+- Remapeamento persistente das quatro direções do teclado, com captura direta da tecla.
+- Troca automática quando uma tecla já pertence a outra direção e restauração para WASD.
+- Sequência procedural de morte com queda, alma, pulso, fragmentos e variante de efeitos reduzidos.
+- Tela cinematográfica de **Game Over** antes do relatório da expedição.
+- Testes unitários dos controles e Playwright cobrindo persistência, movimento remapeado, morte e game over.
+
+### Alterado
+
+- A sala de preparação ficou mais limpa com a remoção do stepper textual de aventureiro, contrato e partida.
+- Setas e analógico continuam disponíveis junto das teclas personalizadas.
+
 ## 0.2.0 — 2026-07-30
 
 ### Adicionado

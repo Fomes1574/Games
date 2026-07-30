@@ -2,6 +2,16 @@ import type Phaser from 'phaser';
 
 import type { UpgradeId } from '../data/content';
 import {
+  DEFAULT_MOVEMENT_BINDINGS,
+  formatKeyboardCode,
+  isBindableMovementCode,
+  MOVEMENT_DIRECTIONS,
+  parseMovementBindings,
+  rebindMovement,
+  type MovementBindings,
+  type MovementDirection,
+} from '../domain/input/movementBindings';
+import {
   GAME_EVENTS,
   type HudDetail,
   type ResultDetail,
@@ -10,6 +20,8 @@ import {
 import type { ExpeditionScene } from '../game/scenes/ExpeditionScene';
 import { withChecksum, type GameSave } from '../domain/saving/saveModel';
 import { SaveService } from '../services/storage/SaveService';
+
+const MOVEMENT_BINDINGS_STORAGE_KEY = 'ultima-companhia-movement-bindings';
 
 const element = <T extends HTMLElement>(id: string): T => {
   const value = document.querySelector<T>(`#${id}`);
@@ -22,6 +34,9 @@ const element = <T extends HTMLElement>(id: string): T => {
 export class AppController {
   private save?: GameSave;
   private lastSeed?: number;
+  private movementBindings: MovementBindings = { ...DEFAULT_MOVEMENT_BINDINGS };
+  private rebindingDirection?: MovementDirection;
+  private pendingDefeatResult?: ResultDetail;
   private lastErrorReport = '';
   private readonly service = new SaveService();
   private readonly landing = element<HTMLElement>('landing');
@@ -30,6 +45,7 @@ export class AppController {
   private readonly hud = element<HTMLElement>('hud');
   private readonly upgradePanel = element<HTMLElement>('upgrade-panel');
   private readonly pausePanel = element<HTMLElement>('pause-panel');
+  private readonly gameOverPanel = element<HTMLElement>('game-over-panel');
   private readonly resultPanel = element<HTMLElement>('result-panel');
   private readonly guildPanel = element<HTMLElement>('guild-panel');
   private readonly settingsPanel = element<HTMLElement>('settings-panel');
@@ -71,11 +87,15 @@ export class AppController {
     this.landing.hidden = true;
     this.statusCard.hidden = true;
     this.hud.hidden = false;
+    this.pendingDefeatResult = undefined;
     document.body.classList.add('is-expedition');
+    document.body.classList.remove('is-dying', 'is-game-over');
     this.game.scene.stop('boot');
     this.game.scene.start('expedition', {
       seed: selectedSeed,
       forgeLevel: this.save.guild.forgeLevel,
+      movementBindings: { ...this.movementBindings },
+      reducedEffects: element<HTMLInputElement>('reduced-effects').checked,
     });
   }
 
@@ -137,6 +157,9 @@ export class AppController {
     element<HTMLButtonElement>('abandon-action').addEventListener('click', () =>
       this.getExpeditionScene()?.debugDefeat(),
     );
+    element<HTMLButtonElement>('game-over-continue').addEventListener('click', () =>
+      this.continueFromGameOver(),
+    );
     element<HTMLButtonElement>('return-guild').addEventListener('click', () => {
       this.restartBootScene();
       this.openGuild();
@@ -163,6 +186,14 @@ export class AppController {
     element<HTMLInputElement>('pause-on-blur').addEventListener('change', () =>
       this.saveSettings(),
     );
+    document.querySelectorAll<HTMLButtonElement>('[data-bind-direction]').forEach(
+      (button) => {
+        button.addEventListener('click', () => this.beginKeyCapture(button));
+      },
+    );
+    element<HTMLButtonElement>('reset-keybindings').addEventListener('click', () =>
+      this.resetKeybindings(),
+    );
     element<HTMLButtonElement>('copy-error').addEventListener('click', () => {
       void navigator.clipboard.writeText(this.lastErrorReport);
     });
@@ -184,6 +215,12 @@ export class AppController {
     window.addEventListener(GAME_EVENTS.pause, (event) => {
       const detail = (event as CustomEvent<{ paused: boolean }>).detail;
       this.pausePanel.hidden = !detail.paused;
+    });
+    window.addEventListener(GAME_EVENTS.death, () => {
+      this.hud.hidden = true;
+      this.upgradePanel.hidden = true;
+      this.pausePanel.hidden = true;
+      document.body.classList.add('is-dying');
     });
     window.addEventListener(GAME_EVENTS.result, (event) => {
       void this.handleResult((event as CustomEvent<ResultDetail>).detail);
@@ -256,10 +293,20 @@ export class AppController {
     this.getExpeditionScene()?.chooseUpgrade(id);
   }
 
-  private async handleResult(detail: ResultDetail): Promise<void> {
+  private async handleResult(
+    detail: ResultDetail,
+    showDefeatIntro = true,
+  ): Promise<void> {
     this.hud.hidden = true;
     this.upgradePanel.hidden = true;
     this.pausePanel.hidden = true;
+    if (detail.outcome === 'defeat' && showDefeatIntro) {
+      this.showGameOver(detail);
+      return;
+    }
+
+    document.body.classList.remove('is-dying', 'is-game-over');
+    this.gameOverPanel.hidden = true;
     element<HTMLElement>('result-eyebrow').textContent =
       detail.outcome === 'victory' ? 'O Bispo tombou' : 'A noite cobrou seu preço';
     element<HTMLElement>('result-title').textContent =
@@ -301,15 +348,16 @@ export class AppController {
   }
 
   private showHome(): void {
+    this.rebindingDirection = undefined;
     this.hideAllPanels();
-    document.body.classList.remove('is-expedition');
+    document.body.classList.remove('is-expedition', 'is-dying', 'is-game-over');
     this.landing.hidden = false;
     this.statusCard.hidden = false;
   }
 
   private showSelection(): void {
     this.hideAllPanels();
-    document.body.classList.remove('is-expedition');
+    document.body.classList.remove('is-expedition', 'is-dying', 'is-game-over');
     this.landing.hidden = true;
     this.statusCard.hidden = true;
     this.selection.hidden = false;
@@ -317,7 +365,7 @@ export class AppController {
 
   private openGuild(): void {
     this.hideAllPanels();
-    document.body.classList.remove('is-expedition');
+    document.body.classList.remove('is-expedition', 'is-dying', 'is-game-over');
     this.landing.hidden = true;
     this.statusCard.hidden = true;
     this.guildPanel.hidden = false;
@@ -325,8 +373,10 @@ export class AppController {
   }
 
   private openSettings(): void {
+    this.rebindingDirection = undefined;
+    this.renderKeybindings();
     this.hideAllPanels();
-    document.body.classList.remove('is-expedition');
+    document.body.classList.remove('is-expedition', 'is-dying', 'is-game-over');
     this.landing.hidden = true;
     this.statusCard.hidden = true;
     this.settingsPanel.hidden = false;
@@ -337,6 +387,7 @@ export class AppController {
     this.hud.hidden = true;
     this.upgradePanel.hidden = true;
     this.pausePanel.hidden = true;
+    this.gameOverPanel.hidden = true;
     this.resultPanel.hidden = true;
     this.guildPanel.hidden = true;
     this.settingsPanel.hidden = true;
@@ -417,6 +468,41 @@ export class AppController {
   }
 
   private handleGlobalKeydown(event: KeyboardEvent): void {
+    if (this.rebindingDirection) {
+      event.preventDefault();
+      const direction = this.rebindingDirection;
+      if (!isBindableMovementCode(event.code)) {
+        element<HTMLElement>('keybinding-status').textContent =
+          event.code === 'Escape'
+            ? 'Esc continua reservado para pausar. Pressione outra tecla.'
+            : 'Essa tecla não pôde ser identificada. Tente outra.';
+        return;
+      }
+      this.movementBindings = rebindMovement(
+        this.movementBindings,
+        direction,
+        event.code,
+      );
+      localStorage.setItem(
+        MOVEMENT_BINDINGS_STORAGE_KEY,
+        JSON.stringify(this.movementBindings),
+      );
+      this.rebindingDirection = undefined;
+      this.renderKeybindings(
+        `${this.directionLabel(direction)} agora usa ${formatKeyboardCode(event.code)}.`,
+      );
+      return;
+    }
+
+    if (
+      !this.gameOverPanel.hidden &&
+      (event.code === 'Enter' || event.code === 'Space')
+    ) {
+      event.preventDefault();
+      this.continueFromGameOver();
+      return;
+    }
+
     if (!this.upgradePanel.hidden && ['1', '2', '3'].includes(event.key)) {
       const buttons = [
         ...element<HTMLElement>('upgrade-choices').querySelectorAll<HTMLButtonElement>(
@@ -431,11 +517,15 @@ export class AppController {
     const scale = localStorage.getItem('ultima-companhia-ui-scale') ?? '100';
     const reduced = localStorage.getItem('ultima-companhia-reduced-effects') === 'true';
     const pause = localStorage.getItem('ultima-companhia-pause-blur') !== 'false';
+    this.movementBindings = parseMovementBindings(
+      localStorage.getItem(MOVEMENT_BINDINGS_STORAGE_KEY),
+    );
     element<HTMLInputElement>('ui-scale').value = scale;
     element<HTMLInputElement>('reduced-effects').checked = reduced;
     element<HTMLInputElement>('pause-on-blur').checked = pause;
     document.documentElement.style.setProperty('--ui-scale', `${Number(scale) / 100}`);
     document.body.classList.toggle('reduced-effects', reduced);
+    this.renderKeybindings();
   }
 
   private saveSettings(): void {
@@ -447,6 +537,77 @@ export class AppController {
     localStorage.setItem('ultima-companhia-pause-blur', String(pause));
     document.documentElement.style.setProperty('--ui-scale', `${Number(scale) / 100}`);
     document.body.classList.toggle('reduced-effects', reduced);
+  }
+
+  private beginKeyCapture(button: HTMLButtonElement): void {
+    const direction = button.dataset.bindDirection;
+    if (!MOVEMENT_DIRECTIONS.includes(direction as MovementDirection)) {
+      return;
+    }
+    this.rebindingDirection = direction as MovementDirection;
+    this.renderKeybindings(
+      `Pressione a nova tecla para ${this.directionLabel(this.rebindingDirection)}.`,
+    );
+  }
+
+  private resetKeybindings(): void {
+    this.rebindingDirection = undefined;
+    this.movementBindings = { ...DEFAULT_MOVEMENT_BINDINGS };
+    localStorage.setItem(
+      MOVEMENT_BINDINGS_STORAGE_KEY,
+      JSON.stringify(this.movementBindings),
+    );
+    this.renderKeybindings('Controles restaurados para WASD.');
+  }
+
+  private renderKeybindings(status = 'Setas e analógico continuam disponíveis.'): void {
+    for (const direction of MOVEMENT_DIRECTIONS) {
+      element<HTMLElement>(`keybinding-${direction}`).textContent =
+        formatKeyboardCode(this.movementBindings[direction]);
+    }
+    document.querySelectorAll<HTMLButtonElement>('[data-bind-direction]').forEach(
+      (button) => {
+        button.dataset.capturing = String(
+          button.dataset.bindDirection === this.rebindingDirection,
+        );
+      },
+    );
+    element<HTMLElement>('keybinding-status').textContent = status;
+  }
+
+  private directionLabel(direction: MovementDirection): string {
+    return {
+      up: 'cima',
+      down: 'baixo',
+      left: 'esquerda',
+      right: 'direita',
+    }[direction];
+  }
+
+  private showGameOver(detail: ResultDetail): void {
+    this.pendingDefeatResult = detail;
+    this.hud.hidden = true;
+    this.upgradePanel.hidden = true;
+    this.pausePanel.hidden = true;
+    this.resultPanel.hidden = true;
+    document.body.classList.remove('is-dying');
+    document.body.classList.add('is-game-over');
+    element<HTMLElement>('game-over-summary').textContent =
+      `Você resistiu por ${this.formatTime(detail.elapsedSeconds)} e derrubou ` +
+      `${detail.kills} inimigos antes de cair.`;
+    this.gameOverPanel.hidden = false;
+    element<HTMLButtonElement>('game-over-continue').focus();
+  }
+
+  private continueFromGameOver(): void {
+    const detail = this.pendingDefeatResult;
+    if (!detail) {
+      return;
+    }
+    this.pendingDefeatResult = undefined;
+    this.gameOverPanel.hidden = true;
+    document.body.classList.remove('is-game-over');
+    void this.handleResult(detail, false);
   }
 
   private showToast(message: string): void {

@@ -13,3 +13,7 @@ Build de 2026-07-28: HTML 0,85 kB gzip, CSS 1,43 kB gzip e JavaScript 359,43 kB 
 ## Baseline da fatia jogável 0.2.0
 
 Build de 2026-07-30: HTML 3,47 kB gzip, CSS 4,98 kB gzip e JavaScript 371,15 kB gzip. O acréscimo inclui a sala de preparação, HUD completo, sistemas da expedição e cenário procedural em paralaxe. O JavaScript continua acima do aviso padrão de 500 kB sem compressão pelo Phaser; a próxima medição deve separar o motor do código da aplicação e registrar p95/p99 de frame time com 250, 500 e 1.000 inimigos.
+
+## Baseline de controles e game over 0.3.0
+
+Build de 2026-07-30: HTML 3,88 kB gzip, CSS 5,70 kB gzip e JavaScript 373,25 kB gzip. A diferença inclui remapeamento persistente, animação procedural de morte e a tela de game over. O alerta de chunk inicial permanece ligado ao Phaser e continua registrado para divisão no marco de desempenho.

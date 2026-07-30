@@ -4,6 +4,7 @@ export const GAME_EVENTS = {
   hud: 'ultima-companhia:hud',
   upgrade: 'ultima-companhia:upgrade',
   result: 'ultima-companhia:result',
+  death: 'ultima-companhia:death',
   pause: 'ultima-companhia:pause',
   input: 'ultima-companhia:input',
 } as const;
@@ -49,6 +50,13 @@ export interface GameSnapshot extends HudDetail {
     x: number;
     y: number;
   };
+  playerVisual: {
+    rotation: number;
+    scaleX: number;
+    scaleY: number;
+    alpha: number;
+  };
+  phase: 'active' | 'dying' | 'ended';
   awaitingUpgrade: boolean;
   paused: boolean;
   ended: boolean;

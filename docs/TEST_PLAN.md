@@ -1,9 +1,9 @@
 # Plano de testes
 
-- Unitário: RNG, dano, status, XP, escolhas, evoluções, economia, save e ondas.
+- Unitário: RNG, dano, status, XP, escolhas, evoluções, economia, save, controles e ondas.
 - Integração: início, pausa, nível, chefe, resultado, guilda e armazenamento.
-- E2E: aplicativo real, teclado, escolhas, vitória/derrota forçadas, reload e erros.
-- Visual: menu, seleção, combate, chefe, resultado, guilda e cena lotada no mesmo ambiente.
+- E2E: aplicativo real, teclado padrão/remapeado, persistência, escolhas, vitória/derrota forçadas, morte, game over, reload e erros.
+- Visual: menu, seleção, combate, chefe, morte, game over, resultado, guilda e cena lotada no mesmo ambiente.
 - Balanceamento: centenas de sementes por arquétipo.
 - Desempenho: cenários normal, intenso e estresse.
 
