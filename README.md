@@ -2,7 +2,7 @@
 
 Survivors-like 2D dark fantasy para navegador. O jogador comanda uma das últimas guildas vivas em um mundo de noite permanente, envia aventureiros a expedições e retorna com recursos para ampliar suas possibilidades.
 
-> Estado atual: Marco 1 — infraestrutura publicável e tela inicial. O combate e a fatia vertical pertencem aos próximos marcos; o repositório não declara a primeira versão completa antes dos portões de qualidade.
+> Estado atual: versão 0.2 — primeira fatia vertical jogável. Há sala de preparação, Brutamontes, partida de cinco minutos, três armas, três passivas, três evoluções, hordas, elites, chefe, vitória/derrota, guilda e save local.
 
 ## Executar
 
@@ -49,5 +49,13 @@ O Vite usa `base: '/Games/'`; não introduza caminhos absolutos como `/assets/..
 ## Segurança
 
 O jogo é totalmente estático. Não existem chaves ou APIs privadas no navegador. `OPENAI_API_KEY` poderá ser usada apenas por ferramentas locais/manuais de arte e jamais é versionada.
+
+## Jogar
+
+1. Escolha **Preparar expedição**.
+2. Revise o Brutamontes e o contrato da Charneca dos Sinos.
+3. Use uma semente opcional ou deixe o campo vazio.
+4. Escolha **Assinar contrato e partir**.
+5. Mova-se com WASD, setas ou controle; as armas atacam automaticamente.
 
 Licença ainda não definida; não reutilize código ou arte sem autorização do proprietário.

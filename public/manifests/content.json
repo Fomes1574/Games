@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "characters": [],
-  "weapons": [],
-  "passives": [],
-  "evolutions": [],
-  "enemies": [],
-  "bosses": []
+  "characters": ["brutamontes"],
+  "weapons": ["executioner-axe", "watch-crossbow", "funeral-bell"],
+  "passives": ["runic-plate", "fallen-vigor", "hunter-steps"],
+  "evolutions": ["carnage-wheel", "piercing-oath", "iron-requiem"],
+  "enemies": ["crawler", "runner", "cultist", "corrupted-executioner"],
+  "bosses": ["plague-bishop"]
 }

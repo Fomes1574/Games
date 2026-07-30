@@ -1,11 +1,10 @@
 # Limitações conhecidas
 
-## Marco 1
+## Versão 0.2
 
-- O botão principal confirma a infraestrutura, mas ainda não inicia combate.
-- Apenas a tela inicial está implementada.
-- A arte é procedural e provisória.
-- Áudio, save, gamepad e API de testes chegam em marcos posteriores.
-- Fontes vêm do Google Fonts; o pipeline final deve empacotar fontes licenciadas para funcionamento totalmente autônomo.
+- A arte e os personagens ainda usam formas vetoriais/procedurais provisórias.
+- Áudio e remapeamento de controles ainda não foram implementados.
+- O teste Playwright local depende do Chromium; neste ambiente o espelho de download devolve arquivo truncado, portanto o navegador real é executado no GitHub Actions.
+- O cenário usa consulta linear de inimigos; spatial hash e pooling pertencem ao marco de desempenho.
 
 Esses itens são escopo declarado, não requisitos concluídos.

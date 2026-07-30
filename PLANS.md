@@ -14,29 +14,30 @@ Regra permanente: se uma validação falhar, corrigir e executá-la novamente an
 
 ## M1 — Infraestrutura publicável
 
-- Estado: validação remota pendente.
+- Estado: concluído.
 - Objetivo: provar Phaser, Vite, TypeScript, Vitest, Playwright, CI e Pages.
 - Arquivos: configurações raiz, `src/main.ts`, `BootScene`, testes e workflows.
 - Implementação: tela inicial responsiva renderizada por Phaser com shell HTML acessível.
-- Validação: `npm run verify` aprovado localmente; Playwright configurado, mas o download do Chromium foi bloqueado pela rede local e será executado no CI; workflow e URL pública pendentes.
+- Validação: `npm run verify`, Playwright no CI e URL pública aprovados.
 - Aceite: build sem erro, canvas visível, nenhum erro de console e `/Games/` funcional.
-- Riscos: primeira ativação do GitHub Pages pode depender da execução do workflow.
-- Resultado local: zero vulnerabilidades no `npm audit`; build de 359,43 kB gzip no chunk Phaser, registrado como baseline.
+- Resultado: GitHub Pages publicado em `https://fomes1574.github.io/Games/`.
 
 ## M2 — Núcleo jogável
 
-- Estado: pendente.
+- Estado: concluído localmente; validação remota em andamento.
 - Objetivo: partida determinística com movimento, inimigos, ataque, dano, XP, nível e encerramento.
 - Arquivos: `src/core`, `src/domain`, `src/game`, `src/data`, testes.
 - Validação: unitários, integração, Playwright via `window.__GAME_TEST_API__`.
-- Aceite: vitória e derrota reproduzíveis por semente.
+- Resultado: RNG com semente, movimento, armas automáticas, dano, XP, escolhas, vitória/derrota e API de teste implementados.
+- Aceite: `npm run verify` aprovado com 16 testes e 91,26% de cobertura de statements; Playwright remoto pendente.
 
 ## M3 — Fatia vertical de cinco minutos
 
-- Estado: pendente.
+- Estado: implementada localmente; validação remota em andamento.
 - Objetivo: Brutamontes, três armas, três passivas, três evoluções, três inimigos, elite, chefe, guilda e save.
 - Validação: partida real completa, importação/exportação e deploy verificado.
-- Aceite: início, combate, chefe, resultados e retorno à guilda sem atalhos de teste.
+- Resultado: sala de preparação, Brutamontes, três armas/passivas/evoluções, três inimigos, elite, Bispo da Peste, guilda e save.
+- Aceite: início, movimento e parallax cobertos por Playwright; partida completa e deploy aguardam CI.
 
 ## M4 — Pipeline visual
 

@@ -1,16 +1,16 @@
 import Phaser from 'phaser';
 
 import { BootScene } from './game/scenes/BootScene';
+import { ExpeditionScene } from './game/scenes/ExpeditionScene';
+import { installGameTestApi } from './test-api/GameTestApi';
+import { AppController } from './ui/AppController';
 import './ui/styles/global.css';
 
-export const GAME_VERSION = '0.1.0';
+export const GAME_VERSION = '0.2.0';
 
 const gameRoot = document.querySelector<HTMLElement>('#game-root');
-const buildLabel = document.querySelector<HTMLElement>('#build-label');
-const primaryAction = document.querySelector<HTMLButtonElement>('#primary-action');
-
-if (!gameRoot || !buildLabel || !primaryAction) {
-  throw new Error('A estrutura principal da aplicação não foi encontrada.');
+if (!gameRoot) {
+  throw new Error('A raiz do jogo não foi encontrada.');
 }
 
 const game = new Phaser.Game({
@@ -19,32 +19,42 @@ const game = new Phaser.Game({
   width: 1600,
   height: 900,
   backgroundColor: '#090b10',
-  transparent: true,
+  transparent: false,
   render: {
     antialias: true,
     roundPixels: true,
+    powerPreference: 'high-performance',
   },
   scale: {
     mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [BootScene],
+  input: {
+    gamepad: true,
+  },
+  physics: {
+    default: 'arcade',
+    arcade: {
+      debug: false,
+    },
+  },
+  scene: [BootScene, ExpeditionScene],
 });
 
-buildLabel.textContent = `Versão ${GAME_VERSION} · WebGL com fallback Canvas`;
+const controller = new AppController(game, GAME_VERSION);
 
-primaryAction.addEventListener('click', () => {
-  primaryAction.textContent = 'A expedição será aberta no próximo marco';
-  primaryAction.dataset.acknowledged = 'true';
-});
+void controller
+  .initialize()
+  .then(() => {
+    installGameTestApi(
+      () => controller.getExpeditionScene(),
+      (seed) => controller.startRun(seed),
+    );
+  })
+  .catch((error: unknown) => controller.showError(error));
 
-window.addEventListener('error', (event) => {
-  buildLabel.textContent = `Falha ao carregar: ${event.message}`;
-});
-
-window.addEventListener('unhandledrejection', () => {
-  buildLabel.textContent = 'Uma operação inesperada falhou. Recarregue a página.';
-});
+window.addEventListener('error', (event) => controller.showError(event.error ?? event.message));
+window.addEventListener('unhandledrejection', (event) => controller.showError(event.reason));
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => game.destroy(true));

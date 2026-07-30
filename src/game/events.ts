@@ -1,0 +1,60 @@
+import type { UpgradeDefinition, UpgradeId } from '../data/content';
+
+export const GAME_EVENTS = {
+  hud: 'ultima-companhia:hud',
+  upgrade: 'ultima-companhia:upgrade',
+  result: 'ultima-companhia:result',
+  pause: 'ultima-companhia:pause',
+  input: 'ultima-companhia:input',
+} as const;
+
+export interface HudDetail {
+  health: number;
+  maximumHealth: number;
+  experience: number;
+  experienceForNext: number;
+  level: number;
+  elapsedSeconds: number;
+  durationSeconds: number;
+  enemies: number;
+  kills: number;
+  bossHealth: number | null;
+  bossMaximumHealth: number | null;
+  weapons: string[];
+}
+
+export interface UpgradeDetail {
+  choices: UpgradeDefinition[];
+  pendingLevels: number;
+}
+
+export interface ResultDetail {
+  outcome: 'victory' | 'defeat';
+  elapsedSeconds: number;
+  kills: number;
+  level: number;
+  embers: number;
+  seed: number;
+  upgrades: Partial<Record<UpgradeId, number>>;
+}
+
+export interface GameSnapshot extends HudDetail {
+  scene: 'expedition';
+  seed: number;
+  playerPosition: {
+    x: number;
+    y: number;
+  };
+  parallaxOffset: {
+    x: number;
+    y: number;
+  };
+  awaitingUpgrade: boolean;
+  paused: boolean;
+  ended: boolean;
+  upgrades: Partial<Record<UpgradeId, number>>;
+}
+
+export function dispatchGameEvent(name: string, detail: unknown): void {
+  window.dispatchEvent(new CustomEvent(name, { detail }));
+}

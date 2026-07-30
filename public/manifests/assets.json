@@ -7,6 +7,13 @@
       "status": "placeholder",
       "required": true,
       "source": "src/game/scenes/BootScene.ts"
+    },
+    {
+      "id": "expedition.parallax.procedural",
+      "kind": "procedural",
+      "status": "placeholder",
+      "required": true,
+      "source": "src/game/scenes/ExpeditionScene.ts"
     }
   ]
 }

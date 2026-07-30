@@ -14,27 +14,281 @@
     <a class="skip-link" href="#primary-action">Ir para a ação principal</a>
     <main id="app" aria-live="polite">
       <section id="game-shell" aria-label="A Última Companhia">
-        <div id="game-root" aria-label="Cena animada do jogo"></div>
-        <div class="vignette" aria-hidden="true"></div>
-        <div class="landing">
+        <div id="game-root" aria-label="Mundo do jogo"></div>
+        <div id="vignette" class="vignette" aria-hidden="true"></div>
+
+        <section id="landing" class="landing">
           <p class="eyebrow">A noite tomou todos os reinos</p>
           <h1>A Última<br /><span>Companhia</span></h1>
           <p class="intro">
             Reúna os últimos aventureiros. Atravesse regiões corrompidas.
             Volte com poder suficiente para manter a guilda viva.
           </p>
-          <button id="primary-action" class="primary-action" type="button">
-            Preparar expedição
-          </button>
+          <div class="landing-actions">
+            <button id="primary-action" class="primary-action" type="button">
+              Preparar expedição
+            </button>
+            <button id="guild-action" class="text-action" type="button">
+              Sede da guilda
+            </button>
+            <button id="settings-action" class="text-action" type="button">
+              Configurações
+            </button>
+          </div>
           <p id="build-label" class="build-label">Carregando o mundo…</p>
-        </div>
-        <aside class="status-card" aria-label="Estado do primeiro marco">
+        </section>
+
+        <aside id="status-card" class="status-card" aria-label="Estado do jogo">
           <span class="status-dot" aria-hidden="true"></span>
           <div>
-            <strong>Marco I — O Primeiro Fogo</strong>
-            <small>Infraestrutura e publicação</small>
+            <strong>Fatia vertical — O Primeiro Fogo</strong>
+            <small>Uma expedição completa de cinco minutos</small>
           </div>
         </aside>
+
+        <section id="selection-panel" class="panel selection-panel" hidden>
+          <header class="panel-header">
+            <div>
+              <p class="eyebrow">Sala de preparação</p>
+              <h2>Antes de cruzar os portões</h2>
+            </div>
+            <button id="selection-back" class="icon-action" type="button" aria-label="Voltar">
+              ×
+            </button>
+          </header>
+          <ol class="preparation-steps" aria-label="Etapas da preparação">
+            <li data-complete="true"><b>01</b><span>Aventureiro</span></li>
+            <li data-complete="true"><b>02</b><span>Contrato</span></li>
+            <li data-current="true"><b>03</b><span>Partir</span></li>
+          </ol>
+          <div class="preparation-grid">
+            <article class="character-card" data-selected="true">
+              <div class="character-portrait" aria-hidden="true">
+                <svg viewBox="0 0 180 220" role="presentation">
+                  <path
+                    class="portrait-axe"
+                    d="M135 18 112 42l11 12-70 111 14 9 72-113 18 3 12-34-34-12Z"
+                  />
+                  <path
+                    class="portrait-shadow"
+                    d="M93 43c25 0 37 19 34 42l-6 28 27 34-9 57H38l-8-55 30-36-5-29c-4-23 12-41 38-41Z"
+                  />
+                  <path
+                    class="portrait-plate"
+                    d="M59 95 91 77l31 18-9 59H68L59 95Zm8 65h47l16 44H49l18-44Z"
+                  />
+                  <path class="portrait-rune" d="m91 105 12 18-12 22-12-22 12-18Z" />
+                </svg>
+                <span>Selecionado</span>
+              </div>
+              <div>
+                <p class="card-kicker">Aventureiro disponível</p>
+                <h3>Brutamontes</h3>
+                <p>
+                  Um sobrevivente de armadura pesada. Fica mais resistente quando
+                  cercado e começa com o Machado do Carrasco.
+                </p>
+                <ul>
+                  <li>160 de vida inicial</li>
+                  <li>Resistência cresce perto da horda</li>
+                  <li>Golpe circular automático</li>
+                </ul>
+              </div>
+            </article>
+            <article class="contract-card">
+              <div class="contract-heading">
+                <div>
+                  <p class="card-kicker">Contrato disponível</p>
+                  <h3>Charneca dos Sinos</h3>
+                </div>
+                <span class="danger-seal">Risco III</span>
+              </div>
+              <p>
+                Cinco minutos sob uma noite sem amanhecer. Elimine a procissão,
+                sobreviva aos carrascos e derrube o Bispo da Peste.
+              </p>
+              <div class="threat-list">
+                <span>Horda crescente</span>
+                <span>2 elites</span>
+                <span>1 chefe em duas fases</span>
+              </div>
+              <div class="contract-row">
+                <div>
+                  <span>Duração</span>
+                  <strong>05:00</strong>
+                </div>
+                <div>
+                  <span>Recompensa</span>
+                  <strong>80+ brasas</strong>
+                </div>
+                <label>
+                  <span>Semente opcional</span>
+                  <input
+                    id="seed-input"
+                    type="number"
+                    min="1"
+                    max="2147483647"
+                    placeholder="Aleatória"
+                  />
+                </label>
+              </div>
+            </article>
+          </div>
+          <div class="departure-row">
+            <div>
+              <span class="ready-dot" aria-hidden="true"></span>
+              <p>
+                <strong>Preparação concluída</strong>
+                <small>WASD, setas ou controle para mover. As armas atacam sozinhas.</small>
+              </p>
+            </div>
+            <button id="start-expedition" class="primary-action" type="button">
+              Assinar contrato e partir
+            </button>
+          </div>
+        </section>
+
+        <section id="hud" class="hud" aria-label="Estado da expedição" hidden>
+          <div class="hud-top">
+            <div class="health-block">
+              <div class="hud-label-row">
+                <strong>Brutamontes</strong>
+                <span id="health-text">160 / 160</span>
+              </div>
+              <div class="bar health-bar"><i id="health-fill"></i></div>
+            </div>
+            <div class="timer-block">
+              <span>Tempo restante</span>
+              <strong id="timer-text">05:00</strong>
+            </div>
+            <div class="combat-stats">
+              <span><b id="kill-count">0</b> abatidos</span>
+              <span><b id="enemy-count">0</b> na horda</span>
+            </div>
+          </div>
+          <div id="boss-block" class="boss-block" hidden>
+            <span>Bispo da Peste</span>
+            <div class="bar boss-bar"><i id="boss-fill"></i></div>
+          </div>
+          <div class="hud-bottom">
+            <div class="level-orb"><span>Nível</span><strong id="level-text">1</strong></div>
+            <div class="experience-block">
+              <div class="bar experience-bar"><i id="experience-fill"></i></div>
+              <span id="weapon-list">Machado do Carrasco 1</span>
+            </div>
+            <button id="pause-action" class="hud-action" type="button">Esc · Pausar</button>
+          </div>
+        </section>
+
+        <section id="upgrade-panel" class="modal-card upgrade-panel" hidden>
+          <p class="eyebrow">A noite cede diante de você</p>
+          <h2>Escolha seu próximo poder</h2>
+          <p id="pending-levels" class="modal-copy"></p>
+          <div id="upgrade-choices" class="upgrade-choices"></div>
+          <small>Teclas 1, 2 ou 3 · controle e mouse</small>
+        </section>
+
+        <section id="pause-panel" class="modal-card compact-panel" hidden>
+          <p class="eyebrow">Expedição suspensa</p>
+          <h2>Pausa</h2>
+          <button id="resume-action" class="primary-action" type="button">Continuar</button>
+          <button id="abandon-action" class="danger-action" type="button">
+            Abandonar expedição
+          </button>
+        </section>
+
+        <section id="result-panel" class="modal-card result-panel" hidden>
+          <p id="result-eyebrow" class="eyebrow">Expedição encerrada</p>
+          <h2 id="result-title">Retorno à companhia</h2>
+          <p id="result-summary" class="modal-copy"></p>
+          <div class="result-grid">
+            <div><span>Tempo</span><strong id="result-time">00:00</strong></div>
+            <div><span>Abatidos</span><strong id="result-kills">0</strong></div>
+            <div><span>Nível</span><strong id="result-level">1</strong></div>
+            <div><span>Brasas</span><strong id="result-embers">0</strong></div>
+          </div>
+          <div class="modal-actions">
+            <button id="return-guild" class="primary-action" type="button">
+              Retornar à guilda
+            </button>
+            <button id="replay-action" class="text-action" type="button">
+              Nova expedição
+            </button>
+          </div>
+        </section>
+
+        <section id="guild-panel" class="panel guild-panel" hidden>
+          <header class="panel-header">
+            <div>
+              <p class="eyebrow">A última chama</p>
+              <h2>Sede da Companhia</h2>
+            </div>
+            <button id="guild-close" class="icon-action" type="button" aria-label="Fechar">
+              ×
+            </button>
+          </header>
+          <div class="guild-resource">
+            <span>Brasas preservadas</span>
+            <strong id="guild-embers">0</strong>
+          </div>
+          <article class="building-card">
+            <div class="building-icon" aria-hidden="true">⚒</div>
+            <div>
+              <p class="card-kicker">Construção disponível</p>
+              <h3>Ferreiro</h3>
+              <p>
+                Cada nível melhora em 4% o dano de todas as armas no início
+                das próximas expedições.
+              </p>
+              <strong id="forge-level">Nível 0 / 5</strong>
+            </div>
+            <button id="forge-upgrade" class="secondary-action" type="button">
+              Melhorar · 60 brasas
+            </button>
+          </article>
+          <div class="save-actions">
+            <button id="export-save" class="text-action" type="button">Exportar save</button>
+            <label class="text-action file-action">
+              Importar save
+              <input id="import-save" type="file" accept="application/json,.json" />
+            </label>
+          </div>
+        </section>
+
+        <section id="settings-panel" class="panel settings-panel" hidden>
+          <header class="panel-header">
+            <div>
+              <p class="eyebrow">Ajustes de campanha</p>
+              <h2>Configurações</h2>
+            </div>
+            <button id="settings-close" class="icon-action" type="button" aria-label="Fechar">
+              ×
+            </button>
+          </header>
+          <label class="setting-row">
+            <span>Escala da interface</span>
+            <input id="ui-scale" type="range" min="85" max="120" step="5" value="100" />
+          </label>
+          <label class="setting-row">
+            <span>Reduzir tremor e flashes</span>
+            <input id="reduced-effects" type="checkbox" />
+          </label>
+          <label class="setting-row">
+            <span>Pausar ao perder foco</span>
+            <input id="pause-on-blur" type="checkbox" checked />
+          </label>
+          <p class="control-help">
+            Movimento: WASD, setas ou analógico. Pausa: Esc. Escolhas: 1–3,
+            Enter, controle ou mouse. Nenhum mouse é exigido durante o combate.
+          </p>
+        </section>
+
+        <div id="toast" class="toast" role="status" hidden></div>
+        <section id="error-panel" class="error-panel" role="alert" hidden>
+          <strong>Uma falha interrompeu a companhia.</strong>
+          <p id="error-message"></p>
+          <button id="copy-error" class="text-action" type="button">Copiar relatório</button>
+        </section>
       </section>
     </main>
     <noscript>Este jogo precisa de JavaScript habilitado.</noscript>
