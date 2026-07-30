@@ -31,7 +31,9 @@ test('a ação principal responde ao teclado', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: 'Antes de cruzar os portões' }),
   ).toBeVisible();
-  await expect(page.getByText('Brutamontes', { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Brutamontes', exact: true }),
+  ).toBeVisible();
   await expect(page.getByText('Charneca dos Sinos', { exact: true })).toBeVisible();
 });
 
