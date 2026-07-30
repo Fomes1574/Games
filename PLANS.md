@@ -24,20 +24,20 @@ Regra permanente: se uma validação falhar, corrigir e executá-la novamente an
 
 ## M2 — Núcleo jogável
 
-- Estado: concluído localmente; validação remota em andamento.
+- Estado: concluído em 2026-07-30.
 - Objetivo: partida determinística com movimento, inimigos, ataque, dano, XP, nível e encerramento.
 - Arquivos: `src/core`, `src/domain`, `src/game`, `src/data`, testes.
 - Validação: unitários, integração, Playwright via `window.__GAME_TEST_API__`.
 - Resultado: RNG com semente, movimento, armas automáticas, dano, XP, escolhas, vitória/derrota e API de teste implementados.
-- Aceite: `npm run verify` aprovado com 16 testes e 91,26% de cobertura de statements; Playwright remoto pendente.
+- Aceite: `npm run verify` aprovado com 16 testes e 91,26% de cobertura de statements; os três testes Playwright passaram no Chromium do GitHub Actions.
 
 ## M3 — Fatia vertical de cinco minutos
 
-- Estado: implementada localmente; validação remota em andamento.
+- Estado: fatia publicada; encerramento completo de cinco minutos ainda precisa de um cenário automatizado.
 - Objetivo: Brutamontes, três armas, três passivas, três evoluções, três inimigos, elite, chefe, guilda e save.
 - Validação: partida real completa, importação/exportação e deploy verificado.
 - Resultado: sala de preparação, Brutamontes, três armas/passivas/evoluções, três inimigos, elite, Bispo da Peste, guilda e save.
-- Aceite: início, movimento e parallax cobertos por Playwright; partida completa e deploy aguardam CI.
+- Aceite: início, movimento e parallax cobertos por Playwright; deploy aprovado no GitHub Pages. A automação da partida completa permanece para concluir o marco.
 
 ## M4 — Pipeline visual
 
