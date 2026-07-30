@@ -39,6 +39,13 @@ Regra permanente: se uma validação falhar, corrigir e executá-la novamente an
 - Resultado: sala de preparação simplificada, controles remapeáveis, Brutamontes frágil, seis armas/evoluções, cinco inimigos comuns/especiais, eventos cronometrados, cura, elite, Bispo da Peste, animação de morte, game over, guilda e save.
 - Aceite: início, movimento padrão/remapeado, persistência dos controles, morte, game over e parallax cobertos por Playwright; deploy aprovado no GitHub Pages. A automação da partida completa permanece para concluir o marco.
 
+## M3.1 — Compatibilidade mobile
+
+- Estado: concluído em 2026-07-30.
+- Objetivo: executar a mesma partida em celular sem alterar a experiência desktop.
+- Implementação: analógico virtual isolado, alvos de toque, áreas seguras, altura dinâmica e layouts de retrato/paisagem.
+- Validação: suíte desktop preservada e projeto Playwright mobile cobrindo menus, combate, pausa, melhorias, HUD e overflow.
+
 ## M4 — Pipeline visual
 
 - Estado: pendente.

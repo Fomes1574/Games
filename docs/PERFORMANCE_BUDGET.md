@@ -21,3 +21,7 @@ Build de 2026-07-30: HTML 3,87 kB gzip, CSS 5,70 kB gzip e JavaScript 373,28 kB 
 ## Baseline de combate e formações 0.4.0
 
 Build de 2026-07-30: HTML 3,86 kB gzip, CSS 5,92 kB gzip e JavaScript 379,59 kB gzip. A diferença inclui seis armas, seis evoluções, efeitos de estado, cura, formações temporizadas e novos inimigos. A simulação determinística cobre 236 inimigos agendados; a medição de p95/p99 com as metas de 250, 500 e 1.000 entidades continua reservada ao marco de desempenho.
+
+## Baseline mobile 0.5.0
+
+Build de 2026-07-30: HTML 4,13 kB gzip, CSS 7,15 kB gzip e JavaScript 380,41 kB gzip. O acréscimo corresponde ao analógico virtual, áreas seguras e regras responsivas; não adiciona biblioteca nem loop de renderização. O alerta do chunk inicial continua ligado ao Phaser.

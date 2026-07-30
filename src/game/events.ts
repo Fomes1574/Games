@@ -43,6 +43,7 @@ export interface ResultDetail {
 
 export interface GameSnapshot extends HudDetail {
   scene: 'expedition';
+  inputMode: 'keyboard' | 'gamepad' | 'touch';
   seed: number;
   playerPosition: {
     x: number;

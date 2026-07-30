@@ -17,8 +17,25 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: /mobile\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
+        launchOptions: localChromium
+          ? {
+              executablePath: localChromium,
+              args: ['--no-sandbox'],
+            }
+          : undefined,
+      },
+    },
+    {
+      name: 'mobile-chromium',
+      testMatch: /mobile\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 2,
+        hasTouch: true,
         launchOptions: localChromium
           ? {
               executablePath: localChromium,

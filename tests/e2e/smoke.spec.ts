@@ -14,6 +14,7 @@ test('carrega a tela inicial sem erros críticos', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /A Última Companhia/i })).toBeVisible();
   await expect(page.locator('#game-root canvas')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Preparar expedição' })).toBeVisible();
+  await expect(page.locator('#touch-controls')).toBeHidden();
   expect(errors).toEqual([]);
 });
 

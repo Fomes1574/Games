@@ -2,6 +2,21 @@
 
 Todas as mudanças relevantes serão registradas neste arquivo.
 
+## 0.5.0 — 2026-07-30
+
+### Adicionado
+
+- Analógico virtual móvel com movimento contínuo, diagonal, intensidade e zona morta.
+- Layout mobile com áreas seguras, suporte a altura dinâmica e adaptação entre retrato e paisagem.
+- Dicas específicas para toque sem substituir instruções de teclado, mouse ou controle.
+- Três testes Playwright mobile para menus, movimento, pausa, melhorias, HUD e ausência de rolagem horizontal.
+
+### Alterado
+
+- Controles de toque ficam isolados da entrada de teclado e gamepad e aparecem somente em dispositivos compatíveis.
+- O analógico é suspenso automaticamente durante pausa, melhorias, morte e resultados.
+- Cartões, painéis e alvos de toque respeitam dimensões móveis sem alterar a apresentação desktop.
+
 ## 0.4.0 — 2026-07-30
 
 ### Adicionado

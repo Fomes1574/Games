@@ -11,6 +11,7 @@ import {
   type MovementBindings,
   type MovementDirection,
 } from '../domain/input/movementBindings';
+import { joystickVectorFromPoint } from '../domain/input/touchMovement';
 import {
   GAME_EVENTS,
   type HudDetail,
@@ -38,6 +39,7 @@ export class AppController {
   private movementBindings: MovementBindings = { ...DEFAULT_MOVEMENT_BINDINGS };
   private rebindingDirection?: MovementDirection;
   private pendingDefeatResult?: ResultDetail;
+  private touchPointerId?: number;
   private lastErrorReport = '';
   private readonly service = new SaveService();
   private readonly landing = element<HTMLElement>('landing');
@@ -50,6 +52,9 @@ export class AppController {
   private readonly resultPanel = element<HTMLElement>('result-panel');
   private readonly guildPanel = element<HTMLElement>('guild-panel');
   private readonly settingsPanel = element<HTMLElement>('settings-panel');
+  private readonly touchControls = element<HTMLElement>('touch-controls');
+  private readonly touchJoystick = element<HTMLButtonElement>('touch-joystick');
+  private readonly touchStickThumb = element<HTMLElement>('touch-stick-thumb');
   private readonly toast = element<HTMLElement>('toast');
 
   public constructor(
@@ -64,6 +69,7 @@ export class AppController {
     this.selection.setAttribute('aria-busy', 'true');
     this.bindActions();
     this.bindGameEvents();
+    this.configureTouchControls();
     this.loadSettings();
     this.save = await this.service.load();
     this.renderGuild();
@@ -98,6 +104,7 @@ export class AppController {
       movementBindings: { ...this.movementBindings },
       reducedEffects: element<HTMLInputElement>('reduced-effects').checked,
     });
+    this.setTouchControlsSuspended(false);
   }
 
   public getExpeditionScene(): ExpeditionScene | undefined {
@@ -200,6 +207,7 @@ export class AppController {
     });
     window.addEventListener('keydown', (event) => this.handleGlobalKeydown(event));
     window.addEventListener('blur', () => {
+      this.releaseTouchMovement();
       if (element<HTMLInputElement>('pause-on-blur').checked) {
         this.getExpeditionScene()?.togglePause(true);
       }
@@ -211,13 +219,16 @@ export class AppController {
       this.renderHud((event as CustomEvent<HudDetail>).detail);
     });
     window.addEventListener(GAME_EVENTS.upgrade, (event) => {
+      this.setTouchControlsSuspended(true);
       this.renderUpgrade((event as CustomEvent<UpgradeDetail>).detail);
     });
     window.addEventListener(GAME_EVENTS.pause, (event) => {
       const detail = (event as CustomEvent<{ paused: boolean }>).detail;
       this.pausePanel.hidden = !detail.paused;
+      this.setTouchControlsSuspended(detail.paused);
     });
     window.addEventListener(GAME_EVENTS.death, () => {
+      this.setTouchControlsSuspended(true);
       this.hud.hidden = true;
       this.upgradePanel.hidden = true;
       this.pausePanel.hidden = true;
@@ -307,6 +318,7 @@ export class AppController {
 
   private selectUpgrade(id: UpgradeId): void {
     this.upgradePanel.hidden = true;
+    this.setTouchControlsSuspended(false);
     this.getExpeditionScene()?.chooseUpgrade(id);
   }
 
@@ -314,6 +326,7 @@ export class AppController {
     detail: ResultDetail,
     showDefeatIntro = true,
   ): Promise<void> {
+    this.setTouchControlsSuspended(true);
     this.hud.hidden = true;
     this.upgradePanel.hidden = true;
     this.pausePanel.hidden = true;
@@ -400,6 +413,7 @@ export class AppController {
   }
 
   private hideAllPanels(): void {
+    this.setTouchControlsSuspended(true);
     this.selection.hidden = true;
     this.hud.hidden = true;
     this.upgradePanel.hidden = true;
@@ -411,6 +425,7 @@ export class AppController {
   }
 
   private restartBootScene(): void {
+    this.releaseTouchMovement();
     this.game.scene.stop('expedition');
     this.game.scene.stop('boot');
     this.game.scene.start('boot');
@@ -530,6 +545,97 @@ export class AppController {
     }
   }
 
+  private configureTouchControls(): void {
+    const touchCapable =
+      navigator.maxTouchPoints > 0 &&
+      (window.matchMedia('(pointer: coarse)').matches ||
+        window.matchMedia('(max-width: 900px)').matches);
+    this.touchControls.hidden = !touchCapable;
+    document.body.classList.toggle('touch-capable', touchCapable);
+    this.setTouchControlsSuspended(true);
+    if (!touchCapable) {
+      return;
+    }
+
+    this.touchJoystick.addEventListener('pointerdown', (event) => {
+      if (
+        this.touchControls.dataset.suspended === 'true' ||
+        this.touchPointerId !== undefined
+      ) {
+        return;
+      }
+      event.preventDefault();
+      this.touchPointerId = event.pointerId;
+      try {
+        this.touchJoystick.setPointerCapture(event.pointerId);
+      } catch {
+        // Eventos sintéticos de teste não possuem um ponteiro capturável.
+      }
+      this.updateTouchMovement(event);
+    });
+    this.touchJoystick.addEventListener('pointermove', (event) => {
+      if (event.pointerId === this.touchPointerId) {
+        event.preventDefault();
+        this.updateTouchMovement(event);
+      }
+    });
+    this.touchJoystick.addEventListener('lostpointercapture', () =>
+      this.releaseTouchMovement(),
+    );
+    this.touchJoystick.addEventListener('contextmenu', (event) =>
+      event.preventDefault(),
+    );
+    window.addEventListener('pointerup', (event) =>
+      this.releaseTouchMovement(event.pointerId),
+    );
+    window.addEventListener('pointercancel', (event) =>
+      this.releaseTouchMovement(event.pointerId),
+    );
+  }
+
+  private updateTouchMovement(event: PointerEvent): void {
+    const bounds = this.touchJoystick.getBoundingClientRect();
+    const radius = Math.max(1, Math.min(bounds.width, bounds.height) / 2);
+    const vector = joystickVectorFromPoint(
+      {
+        x: bounds.left + bounds.width / 2,
+        y: bounds.top + bounds.height / 2,
+      },
+      { x: event.clientX, y: event.clientY },
+      radius,
+    );
+    const thumbBounds = this.touchStickThumb.getBoundingClientRect();
+    const travel = Math.max(0, (Math.min(bounds.width, bounds.height) - thumbBounds.width) / 2);
+    this.touchStickThumb.style.setProperty('--stick-x', `${vector.x * travel}px`);
+    this.touchStickThumb.style.setProperty('--stick-y', `${vector.y * travel}px`);
+    this.getExpeditionScene()?.setTouchMovement(vector.x, vector.y);
+  }
+
+  private releaseTouchMovement(pointerId?: number): void {
+    if (
+      pointerId !== undefined &&
+      this.touchPointerId !== undefined &&
+      pointerId !== this.touchPointerId
+    ) {
+      return;
+    }
+    this.touchPointerId = undefined;
+    this.touchStickThumb.style.setProperty('--stick-x', '0px');
+    this.touchStickThumb.style.setProperty('--stick-y', '0px');
+    this.getExpeditionScene()?.setTouchMovement(0, 0);
+  }
+
+  private setTouchControlsSuspended(suspended: boolean): void {
+    this.touchControls.dataset.suspended = String(suspended);
+    this.touchControls.setAttribute(
+      'aria-hidden',
+      String(suspended || this.touchControls.hidden),
+    );
+    if (suspended) {
+      this.releaseTouchMovement();
+    }
+  }
+
   private loadSettings(): void {
     const scale = localStorage.getItem('ultima-companhia-ui-scale') ?? '100';
     const reduced = localStorage.getItem('ultima-companhia-reduced-effects') === 'true';
@@ -602,6 +708,7 @@ export class AppController {
   }
 
   private showGameOver(detail: ResultDetail): void {
+    this.setTouchControlsSuspended(true);
     this.pendingDefeatResult = detail;
     this.hud.hidden = true;
     this.upgradePanel.hidden = true;

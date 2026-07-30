@@ -6,7 +6,7 @@ import { installGameTestApi } from './test-api/GameTestApi';
 import { AppController } from './ui/AppController';
 import './ui/styles/global.css';
 
-export const GAME_VERSION = '0.4.0';
+export const GAME_VERSION = '0.5.0';
 
 const gameRoot = document.querySelector<HTMLElement>('#game-root');
 if (!gameRoot) {

@@ -29,6 +29,10 @@ import {
   type MovementDirection,
 } from '../../domain/input/movementBindings';
 import {
+  clampMovementVector,
+  type MovementVector,
+} from '../../domain/input/touchMovement';
+import {
   addExperience,
   experienceRequired,
 } from '../../domain/progression/experience';
@@ -215,7 +219,8 @@ export class ExpeditionScene extends Phaser.Scene {
   private facingX = 0;
   private facingY = -1;
   private playerMovedThisStep = false;
-  private inputMode: 'keyboard' | 'gamepad' = 'keyboard';
+  private inputMode: 'keyboard' | 'gamepad' | 'touch' = 'keyboard';
+  private touchMovement: MovementVector = { x: 0, y: 0 };
   private movementBindings: MovementBindings = { ...DEFAULT_MOVEMENT_BINDINGS };
   private readonly pressedKeyboardCodes = new Set<string>();
 
@@ -280,10 +285,15 @@ export class ExpeditionScene extends Phaser.Scene {
     dispatchGameEvent(GAME_EVENTS.pause, { paused: this.pausedByUser });
   }
 
+  public setTouchMovement(x: number, y: number): void {
+    this.touchMovement = clampMovementVector(x, y);
+  }
+
   public getSnapshot(): GameSnapshot {
     return {
       ...this.createHudDetail(),
       scene: 'expedition',
+      inputMode: this.inputMode,
       seed: this.seed,
       playerPosition: {
         x: this.player?.x ?? 0,
@@ -401,6 +411,8 @@ export class ExpeditionScene extends Phaser.Scene {
     this.facingX = 0;
     this.facingY = -1;
     this.playerMovedThisStep = false;
+    this.inputMode = 'keyboard';
+    this.touchMovement = { x: 0, y: 0 };
     this.pressedKeyboardCodes.clear();
   }
 
@@ -571,6 +583,13 @@ export class ExpeditionScene extends Phaser.Scene {
       if (this.inputMode !== 'gamepad') {
         this.inputMode = 'gamepad';
         dispatchGameEvent(GAME_EVENTS.input, { mode: 'gamepad' });
+      }
+    } else if (Math.hypot(this.touchMovement.x, this.touchMovement.y) > 0) {
+      horizontal = this.touchMovement.x;
+      vertical = this.touchMovement.y;
+      if (this.inputMode !== 'touch') {
+        this.inputMode = 'touch';
+        dispatchGameEvent(GAME_EVENTS.input, { mode: 'touch' });
       }
     } else if ((horizontal !== 0 || vertical !== 0) && this.inputMode !== 'keyboard') {
       this.inputMode = 'keyboard';
@@ -2210,6 +2229,7 @@ export class ExpeditionScene extends Phaser.Scene {
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     this.input.keyboard?.off('keydown', this.handleKeyboardDown);
     this.input.keyboard?.off('keyup', this.handleKeyboardUp);
+    this.touchMovement = { x: 0, y: 0 };
     this.pressedKeyboardCodes.clear();
     if (this.deathTimeout !== undefined) {
       window.clearTimeout(this.deathTimeout);

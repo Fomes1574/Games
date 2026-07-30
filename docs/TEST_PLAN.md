@@ -9,4 +9,6 @@
 
 Na versão 0.4, unitários verificam cronograma, metade da duração do veneno transferido, vulnerabilidade sem autoamplificação, lentidão menor no chefe, limites de armas e níveis posteriores. Playwright confirma 80/5, cartas compactas e a formação dos 30 segundos sem modal.
 
+Na versão 0.5, o projeto Chromium desktop continua executando a suíte anterior sem controles móveis visíveis. Um projeto Chromium com toque em 390×844 cobre menus sem overflow, analógico virtual, pausa, suspensão durante melhorias e reorganização em paisagem 844×390.
+
 E2E falha em exceção, console crítico, 404, canvas ausente, tela preta ou carregamento infinito. Falhas preservam trace, screenshot, vídeo e estado.

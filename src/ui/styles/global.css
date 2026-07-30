@@ -631,6 +631,106 @@ input[type="number"] {
   pointer-events: auto;
 }
 
+.touch-controls,
+.touch-hint {
+  display: none;
+}
+
+.touch-controls {
+  position: absolute;
+  z-index: 90;
+  inset: 0;
+  opacity: 1;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+}
+
+.touch-controls[data-suspended="true"] {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.touch-stick-shell {
+  position: absolute;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  left: max(1rem, env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  pointer-events: auto;
+}
+
+.touch-stick-shell > small {
+  color: rgb(222 210 193 / 52%);
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-shadow: 0 2px 8px #000;
+  text-transform: uppercase;
+}
+
+.touch-joystick {
+  position: relative;
+  display: grid;
+  width: 8rem;
+  height: 8rem;
+  border: 1px solid rgb(221 177 117 / 28%);
+  border-radius: 50%;
+  padding: 0;
+  place-items: center;
+  color: inherit;
+  background:
+    radial-gradient(circle, rgb(31 25 28 / 54%) 0 44%, rgb(7 10 14 / 64%) 45% 100%);
+  box-shadow:
+    inset 0 0 28px rgb(0 0 0 / 42%),
+    0 12px 38px rgb(0 0 0 / 34%);
+  touch-action: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.touch-stick-runes {
+  position: absolute;
+  inset: 0.65rem;
+  border: 1px dashed rgb(203 128 78 / 22%);
+  border-radius: 50%;
+}
+
+.touch-stick-runes::before,
+.touch-stick-runes::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 62%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(206 142 93 / 22%), transparent);
+  content: "";
+  transform: translate(-50%, -50%);
+}
+
+.touch-stick-runes::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.touch-stick-thumb {
+  --stick-x: 0px;
+  --stick-y: 0px;
+
+  position: relative;
+  width: 3.6rem;
+  height: 3.6rem;
+  border: 1px solid rgb(240 192 124 / 62%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 42% 35%, #a95a3a, #472528 62%, #17161b);
+  box-shadow:
+    inset 0 0 0 0.35rem rgb(6 8 12 / 26%),
+    0 0 24px rgb(183 90 56 / 20%),
+    0 8px 18px rgb(0 0 0 / 46%);
+  transform: translate(var(--stick-x), var(--stick-y));
+}
+
 .boss-block {
   position: absolute;
   z-index: 82;
@@ -1534,5 +1634,265 @@ input[type="checkbox"] {
   .keybinding-footer {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  body.touch-capable {
+    min-height: 100dvh;
+    overscroll-behavior: none;
+  }
+
+  body.touch-capable #game-shell {
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+
+  body.touch-capable #game-root canvas {
+    touch-action: none;
+  }
+
+  body.touch-capable button,
+  body.touch-capable .file-action {
+    min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body.touch-capable.is-expedition {
+    touch-action: none;
+    user-select: none;
+  }
+
+  body.touch-capable.is-expedition .touch-controls:not([hidden]) {
+    display: block;
+  }
+
+  body.touch-capable .desktop-hint {
+    display: none;
+  }
+
+  body.touch-capable .touch-hint {
+    display: block;
+  }
+
+  body.touch-capable .landing {
+    width: calc(100% - 2rem - env(safe-area-inset-left) - env(safe-area-inset-right));
+    min-height: 100dvh;
+    max-height: 100dvh;
+    margin-left: max(1rem, env(safe-area-inset-left));
+    padding:
+      max(1rem, env(safe-area-inset-top))
+      0
+      max(6.2rem, calc(4.5rem + env(safe-area-inset-bottom)));
+    overflow-y: auto;
+    transform: none;
+  }
+
+  body.touch-capable .landing::before,
+  body.touch-capable .landing-actions::after {
+    display: none;
+  }
+
+  body.touch-capable h1 {
+    font-size: clamp(3rem, 14vw, 6.4rem);
+  }
+
+  body.touch-capable .intro {
+    margin: 1.35rem 0;
+    line-height: 1.55;
+  }
+
+  body.touch-capable .status-card {
+    right: max(0.75rem, env(safe-area-inset-right));
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    left: max(0.75rem, env(safe-area-inset-left));
+    padding: 0.7rem 0.8rem;
+  }
+
+  body.touch-capable .panel,
+  body.touch-capable .modal-card {
+    width: calc(100vw - 1rem - env(safe-area-inset-left) - env(safe-area-inset-right));
+    max-height: calc(100dvh - 1rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    padding: 1.1rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    transform: translate(-50%, -50%);
+  }
+
+  body.touch-capable .panel-header {
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  body.touch-capable .panel h2,
+  body.touch-capable .modal-card h2 {
+    font-size: clamp(1.55rem, 7vw, 2.6rem);
+  }
+
+  body.touch-capable input[type="number"] {
+    font-size: 16px;
+  }
+
+  body.touch-capable .hud {
+    padding:
+      max(0.45rem, env(safe-area-inset-top))
+      max(0.45rem, env(safe-area-inset-right))
+      max(0.45rem, env(safe-area-inset-bottom))
+      max(0.45rem, env(safe-area-inset-left));
+    transform: none;
+  }
+
+  body.touch-capable .hud-top {
+    top: max(0.45rem, env(safe-area-inset-top));
+    right: max(0.45rem, env(safe-area-inset-right));
+    left: max(0.45rem, env(safe-area-inset-left));
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.4rem;
+  }
+
+  body.touch-capable .health-block {
+    width: auto;
+    padding: 0.58rem 0.65rem;
+  }
+
+  body.touch-capable .timer-block {
+    padding: 0.45rem 0.65rem;
+  }
+
+  body.touch-capable .combat-stats {
+    display: none;
+  }
+
+  body.touch-capable .hud-bottom {
+    right: max(0.45rem, env(safe-area-inset-right));
+    bottom: max(0.65rem, env(safe-area-inset-bottom));
+    left: max(9.4rem, calc(8.5rem + env(safe-area-inset-left)));
+    gap: 0.35rem;
+  }
+
+  body.touch-capable .level-orb {
+    padding: 0.45rem 0.62rem;
+  }
+
+  body.touch-capable .experience-block {
+    min-width: 0;
+    padding: 0.55rem 0.6rem;
+  }
+
+  body.touch-capable .hud-action {
+    min-width: 3.2rem;
+    min-height: 3.2rem;
+    padding: 0.6rem;
+    font-size: 0;
+  }
+
+  body.touch-capable .hud-action::after {
+    font-size: 0.8rem;
+    content: "Pausa";
+  }
+
+  body.touch-capable .boss-block {
+    top: calc(max(0.45rem, env(safe-area-inset-top)) + 4.7rem);
+    width: min(520px, calc(100vw - 1rem));
+  }
+
+  body.touch-capable .upgrade-panel {
+    overscroll-behavior: contain;
+  }
+
+  body.touch-capable .upgrade-card {
+    min-height: 154px;
+  }
+
+  body.touch-capable .game-over-panel {
+    padding:
+      max(1rem, env(safe-area-inset-top))
+      max(1rem, env(safe-area-inset-right))
+      max(1rem, env(safe-area-inset-bottom))
+      max(1rem, env(safe-area-inset-left));
+  }
+
+  body.touch-capable .game-over-panel h2 {
+    font-size: clamp(3.4rem, 17vw, 8rem);
+  }
+
+  body.touch-capable .toast,
+  body.touch-capable .error-panel {
+    right: max(0.75rem, env(safe-area-inset-right));
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    left: max(0.75rem, env(safe-area-inset-left));
+    max-width: none;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) and (max-width: 480px) {
+  body.touch-capable .landing-actions {
+    width: 100%;
+  }
+
+  body.touch-capable .landing-actions > * {
+    width: 100%;
+  }
+
+  body.touch-capable .touch-joystick {
+    width: 7.35rem;
+    height: 7.35rem;
+  }
+
+  body.touch-capable .hud-bottom {
+    left: max(8.65rem, calc(7.8rem + env(safe-area-inset-left)));
+  }
+
+  body.touch-capable .level-orb {
+    display: none;
+  }
+
+  body.touch-capable .experience-block > span {
+    max-width: 7.6rem;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) and (max-height: 520px) {
+  body.touch-capable .landing {
+    justify-content: flex-start;
+    padding-top: max(1rem, env(safe-area-inset-top));
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  body.touch-capable h1 {
+    font-size: clamp(2.8rem, 11vw, 4.8rem);
+  }
+
+  body.touch-capable .intro {
+    max-width: 38rem;
+    margin: 0.85rem 0;
+  }
+
+  body.touch-capable .status-card {
+    display: none;
+  }
+
+  body.touch-capable .touch-joystick {
+    width: 6.5rem;
+    height: 6.5rem;
+  }
+
+  body.touch-capable .touch-stick-thumb {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  body.touch-capable .touch-stick-shell > small,
+  body.touch-capable .experience-block > span {
+    display: none;
+  }
+
+  body.touch-capable .hud-bottom {
+    left: max(7.65rem, calc(6.9rem + env(safe-area-inset-left)));
+  }
+
+  body.touch-capable .upgrade-card {
+    min-height: 140px;
   }
 }
