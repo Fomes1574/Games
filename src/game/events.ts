@@ -1,4 +1,6 @@
 import type { UpgradeDefinition, UpgradeId } from '../data/content';
+import type { CodexEntryId } from '../domain/codex/codex';
+import type { ThreatLevel } from '../domain/encounters/threat';
 
 export const GAME_EVENTS = {
   hud: 'ultima-companhia:hud',
@@ -7,6 +9,7 @@ export const GAME_EVENTS = {
   death: 'ultima-companhia:death',
   pause: 'ultima-companhia:pause',
   input: 'ultima-companhia:input',
+  discovery: 'ultima-companhia:discovery',
 } as const;
 
 export interface HudDetail {
@@ -29,6 +32,13 @@ export interface UpgradeDetail {
   choices: UpgradeDefinition[];
   pendingLevels: number;
   levels: Partial<Record<UpgradeId, number>>;
+  rerolls: number;
+  banishes: number;
+}
+
+export interface DiscoveryDetail {
+  discovered: CodexEntryId[];
+  mastered: CodexEntryId[];
 }
 
 export interface ResultDetail {
@@ -39,6 +49,9 @@ export interface ResultDetail {
   embers: number;
   seed: number;
   upgrades: Partial<Record<UpgradeId, number>>;
+  threatLevel: ThreatLevel;
+  killsByEnemy: Record<string, number>;
+  mapId: string;
 }
 
 export interface GameSnapshot extends HudDetail {
@@ -64,6 +77,10 @@ export interface GameSnapshot extends HudDetail {
   paused: boolean;
   ended: boolean;
   upgrades: Partial<Record<UpgradeId, number>>;
+  threatLevel: ThreatLevel;
+  resurrectionAvailable: boolean;
+  rerolls: number;
+  banishes: number;
 }
 
 export function dispatchGameEvent(name: string, detail: unknown): void {

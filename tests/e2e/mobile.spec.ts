@@ -36,6 +36,15 @@ test('mantém menus utilizáveis em celular sem rolagem horizontal', async ({ pa
     page.getByRole('button', { name: 'Assinar contrato e partir' }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page);
+
+  await page.getByRole('button', { name: 'Voltar' }).click();
+  await page.getByRole('button', { name: 'Grimório' }).click();
+  await expect(page.getByRole('heading', { name: 'Grimório' })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await page.locator('#codex-entry-list button').first().click();
+  await expect(page.locator('.codex-detail-page')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Voltar ao índice' })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
   expect(errors).toEqual([]);
 });
 

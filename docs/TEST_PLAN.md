@@ -11,4 +11,6 @@ Na versão 0.4, unitários verificam cronograma, metade da duração do veneno t
 
 Na versão 0.5, o projeto Chromium desktop continua executando a suíte anterior sem controles móveis visíveis. Um projeto Chromium com toque em 390×844 cobre menus sem overflow, analógico virtual, pausa, suspensão durante melhorias e reorganização em paisagem 844×390.
 
+Na versão 0.6, unitários cobrem custos e limites permanentes, Ressureição, fórmulas de Ameaça, migração v1→v2, novas sinergias e eventos condicionais. Playwright cobre os dezessete cards, bloqueio de Ameaça, Grimório e passagem de índice para página em celular.
+
 E2E falha em exceção, console crítico, 404, canvas ausente, tela preta ou carregamento infinito. Falhas preservam trace, screenshot, vídeo e estado.

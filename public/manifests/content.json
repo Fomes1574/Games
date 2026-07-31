@@ -9,7 +9,18 @@
     "spear",
     "ash-lantern"
   ],
-  "passives": ["runic-plate", "fallen-vigor", "hunter-steps"],
+  "passives": [
+    "runic-plate",
+    "fallen-vigor",
+    "hunter-steps",
+    "quick-hands",
+    "long-sight",
+    "persistence",
+    "ancient-blood",
+    "wisdom",
+    "blessing",
+    "magnetism"
+  ],
   "evolutions": [
     "barbarian-fury",
     "piercing-oath",
@@ -24,6 +35,12 @@
     "cultist",
     "armored-penitent",
     "ruin-herald",
+    "sepulchral-guardian",
+    "ash-summoner",
+    "plague-sower",
+    "shattered",
+    "pale-priest",
+    "mist-hunter",
     "corrupted-executioner"
   ],
   "bosses": ["plague-bishop"]

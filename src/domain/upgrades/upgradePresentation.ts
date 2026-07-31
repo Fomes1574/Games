@@ -167,39 +167,28 @@ export function createUpgradePreview(
     stats = weaponPreview(definition.id as WeaponId, current, next);
   } else if (definition.kind === 'evolution') {
     stats = evolutionPreview(definition.id as EvolutionId, current, next);
-  } else if (definition.id === 'runic-plate') {
-    stats = [
-      transition(
-        'Armadura',
-        current > 0 ? current * 5 : undefined,
-        next * 5,
-        undefined,
-        0,
-        true,
-      ),
-    ];
-  } else if (definition.id === 'fallen-vigor') {
-    stats = [
-      transition(
-        'Vida máxima',
-        current > 0 ? current * 12 : undefined,
-        next * 12,
-        undefined,
-        0,
-        true,
-      ),
-    ];
   } else {
-    const before = (1.08 ** current - 1) * 100;
-    const after = (1.08 ** next - 1) * 100;
+    const passiveValues = {
+      'runic-plate': { label: 'Armadura', perLevel: 5, unit: '', digits: 0 },
+      'fallen-vigor': { label: 'Vida máxima', perLevel: 12, unit: '', digits: 0 },
+      'hunter-steps': { label: 'Velocidade', perLevel: 8, unit: '%', digits: 0 },
+      'quick-hands': { label: 'Recarga', perLevel: -4, unit: '%', digits: 0 },
+      'long-sight': { label: 'Alcance', perLevel: 6, unit: '%', digits: 0 },
+      persistence: { label: 'Duração', perLevel: 6, unit: '%', digits: 0 },
+      'ancient-blood': { label: 'Regeneração', perLevel: 0.08, unit: '/s', digits: 2 },
+      wisdom: { label: 'Experiência', perLevel: 8, unit: '%', digits: 0 },
+      blessing: { label: 'Cura', perLevel: 10, unit: '%', digits: 0 },
+      magnetism: { label: 'Coleta', perLevel: 20, unit: '%', digits: 0 },
+    } as const;
+    const value = passiveValues[definition.id as keyof typeof passiveValues];
     stats = [
       transition(
-        'Velocidade',
-        current > 0 ? before : undefined,
-        after,
-        '%',
-        0,
-        true,
+        value.label,
+        current > 0 ? current * value.perLevel : undefined,
+        next * value.perLevel,
+        value.unit,
+        value.digits,
+        value.perLevel > 0,
       ),
     ];
   }
@@ -260,5 +249,6 @@ function format(
     minimumFractionDigits: fractionDigits,
     maximumFractionDigits: fractionDigits,
   });
-  return `${showPlus && value > 0 ? '+' : ''}${numeric}${unit ? ` ${unit}` : ''}`;
+  const separator = unit === '%' || unit.startsWith('/') ? '' : ' ';
+  return `${showPlus && value > 0 ? '+' : ''}${numeric}${unit ? `${separator}${unit}` : ''}`;
 }

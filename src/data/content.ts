@@ -6,7 +6,17 @@ export type WeaponId =
   | 'spear'
   | 'ash-lantern';
 
-export type PassiveId = 'runic-plate' | 'fallen-vigor' | 'hunter-steps';
+export type PassiveId =
+  | 'runic-plate'
+  | 'fallen-vigor'
+  | 'hunter-steps'
+  | 'quick-hands'
+  | 'long-sight'
+  | 'persistence'
+  | 'ancient-blood'
+  | 'wisdom'
+  | 'blessing'
+  | 'magnetism';
 
 export type EvolutionId =
   | 'barbarian-fury'
@@ -39,6 +49,12 @@ export type EnemyId =
   | 'cultist'
   | 'armored-penitent'
   | 'ruin-herald'
+  | 'sepulchral-guardian'
+  | 'ash-summoner'
+  | 'plague-sower'
+  | 'shattered'
+  | 'pale-priest'
+  | 'mist-hunter'
   | 'corrupted-executioner'
   | 'plague-bishop';
 
@@ -48,6 +64,12 @@ export type EnemyRole =
   | 'ranged'
   | 'tank'
   | 'support'
+  | 'guardian'
+  | 'summoner'
+  | 'hazard'
+  | 'splitter'
+  | 'healer'
+  | 'hunter'
   | 'elite'
   | 'boss';
 
@@ -154,6 +176,62 @@ export const UPGRADES: readonly UpgradeDefinition[] = [
     maxLevel: 5,
   },
   {
+    id: 'quick-hands',
+    name: 'Mãos Ligeiras',
+    description: 'Reduz a recarga das armas.',
+    detail: '-4% de recarga.',
+    kind: 'passive',
+    maxLevel: 5,
+  },
+  {
+    id: 'long-sight',
+    name: 'Visão Longa',
+    description: 'Aumenta o alcance das armas.',
+    detail: '+6% de alcance.',
+    kind: 'passive',
+    maxLevel: 5,
+  },
+  {
+    id: 'persistence',
+    name: 'Persistência',
+    description: 'Prolonga áreas e efeitos.',
+    detail: '+6% de duração.',
+    kind: 'passive',
+    maxLevel: 5,
+  },
+  {
+    id: 'ancient-blood',
+    name: 'Sangue Antigo',
+    description: 'Regenera vida continuamente.',
+    detail: '+0,08 de vida por segundo.',
+    kind: 'passive',
+    maxLevel: 5,
+  },
+  {
+    id: 'wisdom',
+    name: 'Sabedoria',
+    description: 'Aumenta a experiência recebida.',
+    detail: '+8% de experiência.',
+    kind: 'passive',
+    maxLevel: 5,
+  },
+  {
+    id: 'blessing',
+    name: 'Bênção',
+    description: 'Aumenta a cura recebida.',
+    detail: '+10% de cura.',
+    kind: 'passive',
+    maxLevel: 5,
+  },
+  {
+    id: 'magnetism',
+    name: 'Magnetismo',
+    description: 'Atrai itens de mais longe.',
+    detail: '+20% de alcance de coleta.',
+    kind: 'passive',
+    maxLevel: 5,
+  },
+  {
     id: 'barbarian-fury',
     name: 'Fúria Bárbara',
     description: 'Dois giros completos ao redor do personagem.',
@@ -169,7 +247,7 @@ export const UPGRADES: readonly UpgradeDefinition[] = [
     detail: 'O virote central causa mais dano.',
     kind: 'evolution',
     maxLevel: 3,
-    requires: evolutionRequirement('watch-crossbow', 'hunter-steps'),
+    requires: evolutionRequirement('watch-crossbow', 'quick-hands'),
   },
   {
     id: 'divine-aura',
@@ -187,7 +265,7 @@ export const UPGRADES: readonly UpgradeDefinition[] = [
     detail: 'Outras fontes causam dano aumentado.',
     kind: 'evolution',
     maxLevel: 3,
-    requires: evolutionRequirement('widow-venom', 'fallen-vigor'),
+    requires: evolutionRequirement('widow-venom', 'persistence'),
   },
   {
     id: 'impaler',
@@ -196,7 +274,7 @@ export const UPGRADES: readonly UpgradeDefinition[] = [
     detail: 'Faixa maior e mais inimigos perfurados.',
     kind: 'evolution',
     maxLevel: 3,
-    requires: evolutionRequirement('spear', 'runic-plate'),
+    requires: evolutionRequirement('spear', 'long-sight'),
   },
   {
     id: 'hell-steps',
@@ -279,6 +357,78 @@ export const ENEMIES = {
     radius: 19,
     color: 0x9a7846,
     visual: visual('ruin-herald', 'enemy-caster'),
+  },
+  'sepulchral-guardian': {
+    id: 'sepulchral-guardian',
+    name: 'Guardião Sepulcral',
+    role: 'guardian',
+    health: 110,
+    speed: 38,
+    damage: 15,
+    experience: 22,
+    radius: 23,
+    color: 0x667886,
+    visual: visual('sepulchral-guardian', 'enemy-guardian', 1.08),
+  },
+  'ash-summoner': {
+    id: 'ash-summoner',
+    name: 'Invocador da Cinza',
+    role: 'summoner',
+    health: 65,
+    speed: 36,
+    damage: 10,
+    experience: 25,
+    radius: 19,
+    color: 0x725481,
+    visual: visual('ash-summoner', 'enemy-summoner'),
+  },
+  'plague-sower': {
+    id: 'plague-sower',
+    name: 'Semeador da Praga',
+    role: 'hazard',
+    health: 80,
+    speed: 40,
+    damage: 14,
+    experience: 22,
+    radius: 20,
+    color: 0x73834a,
+    visual: visual('plague-sower', 'enemy-hazard'),
+  },
+  shattered: {
+    id: 'shattered',
+    name: 'Estilhaçado',
+    role: 'splitter',
+    health: 55,
+    speed: 62,
+    damage: 12,
+    experience: 15,
+    radius: 18,
+    color: 0x7d6d79,
+    visual: visual('shattered', 'enemy-splitter'),
+  },
+  'pale-priest': {
+    id: 'pale-priest',
+    name: 'Sacerdote Pálido',
+    role: 'healer',
+    health: 95,
+    speed: 38,
+    damage: 10,
+    experience: 30,
+    radius: 21,
+    color: 0xb0a47a,
+    visual: visual('pale-priest', 'enemy-healer'),
+  },
+  'mist-hunter': {
+    id: 'mist-hunter',
+    name: 'Caçador da Bruma',
+    role: 'hunter',
+    health: 70,
+    speed: 70,
+    damage: 18,
+    experience: 28,
+    radius: 18,
+    color: 0x526b74,
+    visual: visual('mist-hunter', 'enemy-hunter'),
   },
   'corrupted-executioner': {
     id: 'corrupted-executioner',

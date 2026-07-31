@@ -46,6 +46,14 @@ Regra permanente: se uma validação falhar, corrigir e executá-la novamente an
 - Implementação: analógico virtual isolado, alvos de toque, áreas seguras, altura dinâmica e layouts de retrato/paisagem.
 - Validação: suíte desktop preservada e projeto Playwright mobile cobrindo menus, combate, pausa, melhorias, HUD e overflow.
 
+## M3.2 — Legado, Ameaça e Grimório
+
+- Estado: concluído em 2026-07-31.
+- Objetivo: transformar brasas em progressão permanente mensurável sem esconder a dificuldade.
+- Implementação: dezessete melhorias permanentes, Ressureição, Ameaça I–X, proteção contra azar nas evoluções, dez passivas, seis novos papéis de inimigo e Grimório responsivo com descoberta em dois estágios.
+- Persistência: save v2 migra a Forja antiga para Dano, registra descobertas, abates por inimigo, mapas e Ameaça desbloqueada.
+- Validação: módulos puros cobrem custos, limites, migração, sinergias e curvas; navegador cobre guilda, Grimório, Ameaça e mobile.
+
 ## M4 — Pipeline visual
 
 - Estado: pendente.

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  ambientEnemyForRoll,
   ambientSpawnMultiplier,
   encounterWavesBetween,
   ENCOUNTER_TIMELINE,
@@ -22,9 +23,37 @@ describe('cronograma de encontros', () => {
     );
   });
 
+  it('só libera funções novas na Ameaça prevista', () => {
+    expect(encounterWavesBetween(119.9, 120, 1)).toEqual([]);
+    expect(encounterWavesBetween(119.9, 120, 2).map((wave) => wave.enemy)).toEqual([
+      'sepulchral-guardian',
+    ]);
+    expect(encounterWavesBetween(241.9, 242, 6)).toEqual([]);
+    expect(encounterWavesBetween(241.9, 242, 7).map((wave) => wave.enemy)).toEqual([
+      'mist-hunter',
+    ]);
+  });
+
   it('reduz o surgimento ambiente durante formações e antes do chefe', () => {
     expect(ambientSpawnMultiplier(30.5)).toBe(0.25);
     expect(ambientSpawnMultiplier(242)).toBe(0.3);
     expect(ambientSpawnMultiplier(120)).toBe(1);
+  });
+
+  it('preserva exatamente a composição ambiente da Ameaça I', () => {
+    expect(ambientEnemyForRoll(200, 0.034, 1, 0)).toBe('ruin-herald');
+    expect(ambientEnemyForRoll(200, 0.04, 1, 0)).toBe('armored-penitent');
+    expect(ambientEnemyForRoll(200, 0.2, 1, 0)).toBe('cultist');
+    expect(ambientEnemyForRoll(200, 0.4, 1, 0)).toBe('runner');
+    expect(ambientEnemyForRoll(200, 0.7, 1, 0)).toBe('crawler');
+  });
+
+  it('adiciona inimigos especiais sem deslocar a tabela ambiente base', () => {
+    expect(ambientEnemyForRoll(200, 0.7, 2, 0.1)).toBe(
+      'sepulchral-guardian',
+    );
+    expect(ambientEnemyForRoll(200, 0.04, 7, 0.5)).toBe(
+      'armored-penitent',
+    );
   });
 });

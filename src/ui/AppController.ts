@@ -2,6 +2,17 @@ import type Phaser from 'phaser';
 
 import type { UpgradeId } from '../data/content';
 import {
+  codexEntriesFor,
+  type CodexCategory,
+  type CodexEntry,
+  type CodexEntryId,
+} from '../domain/codex/codex';
+import {
+  clampThreatLevel,
+  romanThreat,
+  threatModifiers,
+} from '../domain/encounters/threat';
+import {
   DEFAULT_MOVEMENT_BINDINGS,
   formatKeyboardCode,
   isBindableMovementCode,
@@ -13,7 +24,15 @@ import {
 } from '../domain/input/movementBindings';
 import { joystickVectorFromPoint } from '../domain/input/touchMovement';
 import {
+  getPermanentUpgrade,
+  nextPermanentUpgradeCost,
+  PERMANENT_UPGRADES,
+  purchasePermanentUpgrade,
+  type PermanentUpgradeId,
+} from '../domain/progression/permanentUpgrades';
+import {
   GAME_EVENTS,
+  type DiscoveryDetail,
   type HudDetail,
   type ResultDetail,
   type UpgradeDetail,
@@ -42,6 +61,10 @@ export class AppController {
   private touchPointerId?: number;
   private lastErrorReport = '';
   private readonly service = new SaveService();
+  private saveQueue: Promise<void> = Promise.resolve();
+  private codexCategory: CodexCategory = 'weapons';
+  private codexEntryIndex = 0;
+  private codexReturn: 'home' | 'guild' = 'home';
   private readonly landing = element<HTMLElement>('landing');
   private readonly statusCard = element<HTMLElement>('status-card');
   private readonly selection = element<HTMLElement>('selection-panel');
@@ -52,6 +75,7 @@ export class AppController {
   private readonly resultPanel = element<HTMLElement>('result-panel');
   private readonly guildPanel = element<HTMLElement>('guild-panel');
   private readonly settingsPanel = element<HTMLElement>('settings-panel');
+  private readonly codexPanel = element<HTMLElement>('codex-panel');
   private readonly touchControls = element<HTMLElement>('touch-controls');
   private readonly touchJoystick = element<HTMLButtonElement>('touch-joystick');
   private readonly touchStickThumb = element<HTMLElement>('touch-stick-thumb');
@@ -73,6 +97,8 @@ export class AppController {
     this.loadSettings();
     this.save = await this.service.load();
     this.renderGuild();
+    this.renderThreat();
+    this.renderCodex();
     startButton.disabled = false;
     startButton.textContent = 'Assinar contrato e partir';
     this.selection.removeAttribute('aria-busy');
@@ -100,7 +126,8 @@ export class AppController {
     this.game.scene.stop('boot');
     this.game.scene.start('expedition', {
       seed: selectedSeed,
-      forgeLevel: this.save.guild.forgeLevel,
+      permanentUpgrades: { ...this.save.guild.permanentUpgrades },
+      threatLevel: this.save.guild.selectedThreat,
       movementBindings: { ...this.movementBindings },
       reducedEffects: element<HTMLInputElement>('reduced-effects').checked,
     });
@@ -147,8 +174,35 @@ export class AppController {
     element<HTMLButtonElement>('guild-action').addEventListener('click', () =>
       this.openGuild(),
     );
+    element<HTMLButtonElement>('codex-action').addEventListener('click', () =>
+      this.openCodex('home'),
+    );
     element<HTMLButtonElement>('guild-close').addEventListener('click', () =>
       this.showHome(),
+    );
+    element<HTMLButtonElement>('guild-codex').addEventListener('click', () =>
+      this.openCodex('guild'),
+    );
+    element<HTMLButtonElement>('codex-close').addEventListener('click', () =>
+      this.closeCodex(),
+    );
+    element<HTMLButtonElement>('codex-mobile-back').addEventListener('click', () => {
+      element<HTMLElement>('codex-book').dataset.detailOpen = 'false';
+    });
+    element<HTMLButtonElement>('codex-previous').addEventListener('click', () =>
+      this.turnCodexPage(-1),
+    );
+    element<HTMLButtonElement>('codex-next').addEventListener('click', () =>
+      this.turnCodexPage(1),
+    );
+    document.querySelectorAll<HTMLButtonElement>('[data-codex-category]').forEach(
+      (button) => {
+        button.addEventListener('click', () => {
+          this.codexCategory = button.dataset.codexCategory as CodexCategory;
+          this.codexEntryIndex = 0;
+          this.renderCodex(true);
+        });
+      },
     );
     element<HTMLButtonElement>('settings-action').addEventListener('click', () =>
       this.openSettings(),
@@ -176,9 +230,20 @@ export class AppController {
       this.restartBootScene();
       this.showSelection();
     });
-    element<HTMLButtonElement>('forge-upgrade').addEventListener('click', () => {
-      void this.upgradeForge();
+    element<HTMLElement>('permanent-upgrades').addEventListener('click', (event) => {
+      const button = (event.target as HTMLElement).closest<HTMLButtonElement>(
+        '[data-permanent-upgrade]',
+      );
+      if (button?.dataset.permanentUpgrade) {
+        void this.upgradePermanent(button.dataset.permanentUpgrade as PermanentUpgradeId);
+      }
     });
+    element<HTMLSelectElement>('threat-select').addEventListener('change', () =>
+      this.updateSelectedThreat(),
+    );
+    element<HTMLButtonElement>('reroll-upgrades').addEventListener('click', () =>
+      this.getExpeditionScene()?.rerollUpgrades(),
+    );
     element<HTMLButtonElement>('export-save').addEventListener('click', () =>
       this.exportSave(),
     );
@@ -237,6 +302,9 @@ export class AppController {
     window.addEventListener(GAME_EVENTS.result, (event) => {
       void this.handleResult((event as CustomEvent<ResultDetail>).detail);
     });
+    window.addEventListener(GAME_EVENTS.discovery, (event) => {
+      this.persistDiscovery((event as CustomEvent<DiscoveryDetail>).detail);
+    });
   }
 
   private renderHud(detail: HudDetail): void {
@@ -269,6 +337,8 @@ export class AppController {
     choices.replaceChildren();
     detail.choices.forEach((upgrade, index) => {
       const preview = createUpgradePreview(upgrade.id, detail.levels);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'upgrade-choice';
       const button = document.createElement('button');
       button.className = `upgrade-card upgrade-${upgrade.kind}`;
       button.type = 'button';
@@ -306,12 +376,30 @@ export class AppController {
       });
       button.append(number, kind, tier, title, description, stats);
       button.addEventListener('click', () => this.selectUpgrade(upgrade.id));
-      choices.append(button);
+      wrapper.append(button);
+      if (detail.banishes > 0) {
+        const banish = document.createElement('button');
+        banish.type = 'button';
+        banish.className = 'banish-upgrade';
+        banish.textContent = 'Excluir';
+        banish.setAttribute('aria-label', `Excluir ${preview.name} desta expedição`);
+        banish.addEventListener('click', () =>
+          this.getExpeditionScene()?.banishUpgrade(upgrade.id),
+        );
+        wrapper.append(banish);
+      }
+      choices.append(wrapper);
     });
     element<HTMLElement>('pending-levels').textContent =
       detail.pendingLevels > 1
         ? `${detail.pendingLevels} escolhas restantes`
         : '';
+    const tools = element<HTMLElement>('upgrade-tools');
+    tools.hidden = detail.rerolls <= 0 && detail.banishes <= 0;
+    const reroll = element<HTMLButtonElement>('reroll-upgrades');
+    reroll.textContent = `Jackpot · ${detail.rerolls}`;
+    reroll.disabled = detail.rerolls <= 0;
+    element<HTMLElement>('banish-count').textContent = `Veto · ${detail.banishes}`;
     this.upgradePanel.hidden = false;
     choices.querySelector<HTMLButtonElement>('button')?.focus();
   }
@@ -343,7 +431,7 @@ export class AppController {
       detail.outcome === 'victory' ? 'Vitória na Charneca' : 'Expedição perdida';
     element<HTMLElement>('result-summary').textContent =
       detail.outcome === 'victory'
-        ? 'O aventureiro retornou com o contrato cumprido e brasas para a forja.'
+        ? 'O aventureiro retornou com o contrato cumprido e novas brasas.'
         : 'Nem tudo foi perdido: as brasas recuperadas chegaram à companhia.';
     element<HTMLElement>('result-time').textContent = this.formatTime(
       detail.elapsedSeconds,
@@ -351,10 +439,16 @@ export class AppController {
     element<HTMLElement>('result-kills').textContent = String(detail.kills);
     element<HTMLElement>('result-level').textContent = String(detail.level);
     element<HTMLElement>('result-embers').textContent = `+${detail.embers}`;
+    element<HTMLElement>('result-threat').textContent = romanThreat(detail.threatLevel);
     this.resultPanel.hidden = false;
 
     if (this.save) {
       const current = this.save;
+      const victory = detail.outcome === 'victory';
+      const killsByEnemy = { ...current.statistics.killsByEnemy };
+      for (const [enemyId, count] of Object.entries(detail.killsByEnemy)) {
+        killsByEnemy[enemyId] = (killsByEnemy[enemyId] ?? 0) + count;
+      }
       this.save = withChecksum({
         ...current,
         updatedAt: new Date().toISOString(),
@@ -362,18 +456,37 @@ export class AppController {
           ...current.guild,
           embers: current.guild.embers + detail.embers,
           expeditions: current.guild.expeditions + 1,
-          victories: current.guild.victories + Number(detail.outcome === 'victory'),
+          victories: current.guild.victories + Number(victory),
+          maximumThreatUnlocked: victory
+            ? Math.max(
+                current.guild.maximumThreatUnlocked,
+                Math.min(10, detail.threatLevel + 1),
+              )
+            : current.guild.maximumThreatUnlocked,
         },
         statistics: {
+          ...current.statistics,
           enemiesDefeated: current.statistics.enemiesDefeated + detail.kills,
           longestSurvivalSeconds: Math.max(
             current.statistics.longestSurvivalSeconds,
             Math.floor(detail.elapsedSeconds),
           ),
+          killsByEnemy,
+          runsByMap: {
+            ...current.statistics.runsByMap,
+            [detail.mapId]: (current.statistics.runsByMap[detail.mapId] ?? 0) + 1,
+          },
+          victoriesByMap: {
+            ...current.statistics.victoriesByMap,
+            [detail.mapId]:
+              (current.statistics.victoriesByMap[detail.mapId] ?? 0) +
+              Number(victory),
+          },
         },
       });
-      await this.service.save(this.save);
+      await this.enqueueSave(this.save);
       this.renderGuild();
+      this.renderThreat();
     }
   }
 
@@ -391,6 +504,7 @@ export class AppController {
     this.landing.hidden = true;
     this.statusCard.hidden = true;
     this.selection.hidden = false;
+    this.renderThreat();
   }
 
   private openGuild(): void {
@@ -422,6 +536,7 @@ export class AppController {
     this.resultPanel.hidden = true;
     this.guildPanel.hidden = true;
     this.settingsPanel.hidden = true;
+    this.codexPanel.hidden = true;
   }
 
   private restartBootScene(): void {
@@ -435,38 +550,294 @@ export class AppController {
     if (!this.save) {
       return;
     }
-    const level = this.save.guild.forgeLevel;
-    const cost = 60 * (level + 1);
-    element<HTMLElement>('guild-embers').textContent = String(this.save.guild.embers);
-    element<HTMLElement>('forge-level').textContent = `Nível ${level} / 5`;
-    const upgrade = element<HTMLButtonElement>('forge-upgrade');
-    upgrade.textContent = level >= 5 ? 'Nível máximo' : `Melhorar · ${cost} brasas`;
-    upgrade.disabled = level >= 5 || this.save.guild.embers < cost;
+    element<HTMLElement>('guild-embers').textContent =
+      this.save.guild.embers.toLocaleString('pt-BR');
+    element<HTMLElement>('threat-unlocked').textContent =
+      `Ameaça ${romanThreat(this.save.guild.maximumThreatUnlocked)}`;
+    const grid = element<HTMLElement>('permanent-upgrades');
+    grid.replaceChildren();
+    for (const definition of PERMANENT_UPGRADES) {
+      const level = this.save.guild.permanentUpgrades[definition.id];
+      const cost = nextPermanentUpgradeCost(
+        definition.id,
+        this.save.guild.permanentUpgrades,
+      );
+      const card = document.createElement('article');
+      card.className = `permanent-upgrade-card permanent-${definition.group}`;
+      card.dataset.available = String(definition.available);
+      const heading = document.createElement('div');
+      const title = document.createElement('strong');
+      const levelLabel = document.createElement('small');
+      title.textContent = definition.name;
+      levelLabel.textContent = `${level}/${definition.costs.length}`;
+      heading.append(title, levelLabel);
+      const effect = document.createElement('span');
+      effect.textContent = definition.effect;
+      card.append(heading, effect);
+      if (definition.note) {
+        const note = document.createElement('small');
+        note.textContent = definition.note;
+        card.append(note);
+      }
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'secondary-action';
+      button.dataset.permanentUpgrade = definition.id;
+      button.disabled =
+        !definition.available || cost === null || this.save.guild.embers < cost;
+      button.textContent = !definition.available
+        ? 'Bloqueado'
+        : cost === null
+          ? 'Máximo'
+          : `${cost.toLocaleString('pt-BR')} brasas`;
+      card.append(button);
+      grid.append(card);
+    }
   }
 
-  private async upgradeForge(): Promise<void> {
+  private async upgradePermanent(id: PermanentUpgradeId): Promise<void> {
     if (!this.save) {
       return;
     }
-    const level = this.save.guild.forgeLevel;
-    const cost = 60 * (level + 1);
-    if (level >= 5 || this.save.guild.embers < cost) {
-      this.showToast('Brasas insuficientes ou nível máximo alcançado.');
+    try {
+      const current = this.save;
+      const purchase = purchasePermanentUpgrade(
+        id,
+        current.guild.permanentUpgrades,
+        current.guild.embers,
+      );
+      this.save = withChecksum({
+        ...current,
+        updatedAt: new Date().toISOString(),
+        guild: {
+          ...current.guild,
+          embers: purchase.embers,
+          permanentUpgrades: purchase.levels,
+        },
+      });
+      await this.enqueueSave(this.save);
+      this.renderGuild();
+      this.showToast(`${getPermanentUpgrade(id).name} melhorado.`);
+    } catch {
+      this.showToast('Melhoria indisponível ou brasas insuficientes.');
+    }
+  }
+
+  private renderThreat(): void {
+    if (!this.save) {
       return;
     }
-    const current = this.save;
+    const select = element<HTMLSelectElement>('threat-select');
+    for (const option of select.options) {
+      option.disabled = Number(option.value) > this.save.guild.maximumThreatUnlocked;
+    }
+    const selected = Math.min(
+      this.save.guild.selectedThreat,
+      this.save.guild.maximumThreatUnlocked,
+    );
+    select.value = String(selected);
+    const modifiers = threatModifiers(selected);
+    element<HTMLElement>('threat-health').textContent =
+      `${modifiers.healthMultiplier.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}×`;
+    element<HTMLElement>('threat-damage').textContent =
+      `${modifiers.damageMultiplier.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}×`;
+    element<HTMLElement>('threat-embers').textContent =
+      `${modifiers.emberMultiplier.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}×`;
+    const seal = document.querySelector<HTMLElement>('.danger-seal');
+    if (seal) {
+      seal.textContent = `Ameaça ${romanThreat(selected)}`;
+    }
+  }
+
+  private updateSelectedThreat(): void {
+    if (!this.save) {
+      return;
+    }
+    const value = clampThreatLevel(
+      Number(element<HTMLSelectElement>('threat-select').value),
+    );
+    const selectedThreat = Math.min(value, this.save.guild.maximumThreatUnlocked);
     this.save = withChecksum({
-      ...current,
+      ...this.save,
       updatedAt: new Date().toISOString(),
-      guild: {
-        ...current.guild,
-        embers: current.guild.embers - cost,
-        forgeLevel: current.guild.forgeLevel + 1,
-      },
+      guild: { ...this.save.guild, selectedThreat },
     });
-    await this.service.save(this.save);
-    this.renderGuild();
-    this.showToast('A forja foi fortalecida para futuras expedições.');
+    void this.enqueueSave(this.save);
+    this.renderThreat();
+  }
+
+  private openCodex(returnTo: 'home' | 'guild'): void {
+    this.codexReturn = returnTo;
+    this.hideAllPanels();
+    document.body.classList.remove('is-expedition', 'is-dying', 'is-game-over');
+    this.landing.hidden = true;
+    this.statusCard.hidden = true;
+    this.codexPanel.hidden = false;
+    this.renderCodex();
+    element<HTMLButtonElement>('codex-close').focus();
+  }
+
+  private closeCodex(): void {
+    if (this.codexReturn === 'guild') {
+      this.openGuild();
+    } else {
+      this.showHome();
+    }
+  }
+
+  private renderCodex(animate = false): void {
+    const entries = codexEntriesFor(this.codexCategory);
+    const discovered = new Set<CodexEntryId>(this.save?.codex.discovered ?? []);
+    const mastered = new Set<CodexEntryId>(this.save?.codex.mastered ?? []);
+    this.codexEntryIndex = Math.min(
+      Math.max(0, this.codexEntryIndex),
+      Math.max(0, entries.length - 1),
+    );
+    const labels: Record<CodexCategory, string> = {
+      weapons: 'Armas',
+      passives: 'Passivas',
+      enemies: 'Inimigos',
+      bosses: 'Chefes',
+      maps: 'Mapas',
+    };
+    document.querySelectorAll<HTMLButtonElement>('[data-codex-category]').forEach(
+      (button) => {
+        const active = button.dataset.codexCategory === this.codexCategory;
+        button.setAttribute('aria-current', active ? 'page' : 'false');
+      },
+    );
+    element<HTMLElement>('codex-category-title').textContent = labels[this.codexCategory];
+    element<HTMLElement>('codex-counter').textContent =
+      `${entries.filter((entry) => discovered.has(entry.id)).length} / ${entries.length}`;
+
+    const list = element<HTMLElement>('codex-entry-list');
+    list.replaceChildren();
+    entries.forEach((entry, index) => {
+      const known = discovered.has(entry.id);
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.selected = String(index === this.codexEntryIndex);
+      button.dataset.discovered = String(known);
+      const name = document.createElement('strong');
+      name.textContent = known ? entry.name : '???';
+      const state = document.createElement('small');
+      state.textContent = mastered.has(entry.id)
+        ? 'Completo'
+        : known
+          ? 'Encontrado'
+          : 'Desconhecido';
+      button.append(name, state);
+      button.addEventListener('click', () => {
+        this.codexEntryIndex = index;
+        element<HTMLElement>('codex-book').dataset.detailOpen = 'true';
+        this.renderCodex(true);
+      });
+      list.append(button);
+    });
+
+    const entry = entries[this.codexEntryIndex];
+    if (entry) {
+      this.renderCodexEntry(entry, discovered.has(entry.id), mastered.has(entry.id));
+    }
+    element<HTMLButtonElement>('codex-previous').disabled = this.codexEntryIndex <= 0;
+    element<HTMLButtonElement>('codex-next').disabled =
+      this.codexEntryIndex >= entries.length - 1;
+    element<HTMLElement>('codex-page-number').textContent =
+      entries.length > 0 ? `${this.codexEntryIndex + 1} / ${entries.length}` : '—';
+    if (animate) {
+      const book = element<HTMLElement>('codex-book');
+      book.classList.remove('is-turning');
+      requestAnimationFrame(() => book.classList.add('is-turning'));
+      window.setTimeout(() => book.classList.remove('is-turning'), 320);
+    }
+  }
+
+  private renderCodexEntry(
+    entry: CodexEntry,
+    discovered: boolean,
+    mastered: boolean,
+  ): void {
+    const art = element<HTMLElement>('codex-art');
+    art.style.setProperty('--codex-accent', entry.accent);
+    art.dataset.discovered = String(discovered);
+    art.dataset.visualProfile = entry.visualProfile;
+    element<HTMLElement>('codex-sigil').textContent = discovered ? entry.sigil : '?';
+    element<HTMLElement>('codex-discovery-state').textContent = mastered
+      ? 'Registro completo'
+      : discovered
+        ? 'Encontrado'
+        : 'Não descoberto';
+    element<HTMLElement>('codex-entry-name').textContent = discovered ? entry.name : '???';
+    element<HTMLElement>('codex-entry-description').textContent = discovered
+      ? entry.description
+      : 'Continue explorando.';
+    const stats = element<HTMLElement>('codex-entry-stats');
+    stats.replaceChildren();
+    if (mastered) {
+      for (const stat of entry.stats) {
+        const group = document.createElement('div');
+        const term = document.createElement('dt');
+        const value = document.createElement('dd');
+        term.textContent = stat.label;
+        value.textContent = stat.value;
+        group.append(term, value);
+        stats.append(group);
+      }
+    } else if (discovered) {
+      const hint = document.createElement('div');
+      const term = document.createElement('dt');
+      const value = document.createElement('dd');
+      term.textContent = 'Status';
+      value.textContent = 'Derrote ou conclua para revelar';
+      hint.append(term, value);
+      stats.append(hint);
+    }
+  }
+
+  private turnCodexPage(direction: -1 | 1): void {
+    const entries = codexEntriesFor(this.codexCategory);
+    this.codexEntryIndex = Math.min(
+      entries.length - 1,
+      Math.max(0, this.codexEntryIndex + direction),
+    );
+    element<HTMLElement>('codex-book').dataset.detailOpen = 'true';
+    this.renderCodex(true);
+  }
+
+  private persistDiscovery(detail: DiscoveryDetail): void {
+    if (!this.save) {
+      return;
+    }
+    const discovered = new Set(this.save.codex.discovered);
+    const mastered = new Set(this.save.codex.mastered);
+    const before = discovered.size + mastered.size;
+    for (const id of detail.discovered) {
+      discovered.add(id);
+    }
+    for (const id of detail.mastered) {
+      discovered.add(id);
+      mastered.add(id);
+    }
+    if (before === discovered.size + mastered.size) {
+      return;
+    }
+    this.save = withChecksum({
+      ...this.save,
+      updatedAt: new Date().toISOString(),
+      codex: { discovered: [...discovered], mastered: [...mastered] },
+    });
+    void this.enqueueSave(this.save);
+    if (!this.codexPanel.hidden) {
+      this.renderCodex();
+    }
+  }
+
+  private enqueueSave(save: GameSave): Promise<void> {
+    this.saveQueue = this.saveQueue
+      .catch(() => undefined)
+      .then(() => this.service.save(save))
+      .catch((error: unknown) => this.showError(error));
+    return this.saveQueue;
   }
 
   private exportSave(): void {
@@ -491,6 +862,8 @@ export class AppController {
     try {
       this.save = await this.service.import(file);
       this.renderGuild();
+      this.renderThreat();
+      this.renderCodex();
       this.showToast('Save validado e importado.');
     } catch (error) {
       this.showError(error);
@@ -535,10 +908,10 @@ export class AppController {
       return;
     }
 
-    if (!this.upgradePanel.hidden && ['1', '2', '3'].includes(event.key)) {
+    if (!this.upgradePanel.hidden && ['1', '2', '3', '4'].includes(event.key)) {
       const buttons = [
         ...element<HTMLElement>('upgrade-choices').querySelectorAll<HTMLButtonElement>(
-          'button',
+          '.upgrade-card',
         ),
       ];
       buttons[Number(event.key) - 1]?.click();

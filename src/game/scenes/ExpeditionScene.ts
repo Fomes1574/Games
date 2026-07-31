@@ -3,23 +3,37 @@ import Phaser from 'phaser';
 import { SeededRng } from '../../core/rng/SeededRng';
 import {
   ENEMIES,
+  UPGRADES,
   getUpgrade,
   type EnemyDefinition,
+  type UpgradeDefinition,
   type UpgradeId,
   type WeaponId,
 } from '../../data/content';
 import { applyHealing, resolveDamage } from '../../domain/combat/damage';
+import {
+  codexEnemyId,
+  codexUpgradeId,
+  type CodexEntryId,
+} from '../../domain/codex/codex';
 import {
   applyDamageVulnerability,
   slowMultiplier,
   transferredPoisonDuration,
 } from '../../domain/combat/statusEffects';
 import {
+  ambientEnemyForRoll,
   ambientSpawnMultiplier,
   encounterWavesBetween,
   type EncounterFormation,
   type EncounterWave,
 } from '../../domain/encounters/encounterTimeline';
+import {
+  clampThreatLevel,
+  threatModifiers,
+  type ThreatLevel,
+  type ThreatModifiers,
+} from '../../domain/encounters/threat';
 import {
   ARROW_MOVEMENT_BINDINGS,
   DEFAULT_MOVEMENT_BINDINGS,
@@ -37,8 +51,15 @@ import {
   experienceRequired,
 } from '../../domain/progression/experience';
 import {
+  createEmptyPermanentUpgradeLevels,
+  permanentBonuses,
+  type PermanentBonuses,
+  type PermanentUpgradeLevels,
+} from '../../domain/progression/permanentUpgrades';
+import {
   applyUpgrade,
   createUpgradeChoices,
+  isUpgradeAvailable,
   type UpgradeLevels,
 } from '../../domain/upgrades/upgradePool';
 import {
@@ -68,7 +89,8 @@ import {
 
 interface ExpeditionData {
   seed?: number;
-  forgeLevel?: number;
+  permanentUpgrades?: PermanentUpgradeLevels;
+  threatLevel?: number;
   movementBindings?: MovementBindings;
   reducedEffects?: boolean;
 }
@@ -84,6 +106,9 @@ interface EnemyActor {
   actionCooldown: number;
   poisonStacks: PoisonStack[];
   poisonTickAccumulator: number;
+  dashRemaining: number;
+  dashX: number;
+  dashY: number;
 }
 
 interface PoisonStack {
@@ -153,6 +178,13 @@ interface PlayerStats {
   armor: number;
   speed: number;
   damageMultiplier: number;
+  regenerationPerSecond: number;
+  experienceMultiplier: number;
+  cooldownMultiplier: number;
+  rangeMultiplier: number;
+  durationMultiplier: number;
+  healingMultiplier: number;
+  pickupRadiusMultiplier: number;
 }
 
 const WORLD_SIZE = 4_800;
@@ -167,7 +199,10 @@ const POISON_TICK_SECONDS = 0.5;
 export class ExpeditionScene extends Phaser.Scene {
   private rng = new SeededRng(1);
   private seed = 1;
-  private forgeLevel = 0;
+  private permanentLevels = createEmptyPermanentUpgradeLevels();
+  private permanent: PermanentBonuses = permanentBonuses(this.permanentLevels);
+  private threatLevel: ThreatLevel = 1;
+  private threat: ThreatModifiers = threatModifiers(1);
   private player?: Phaser.GameObjects.Container;
   private playerBody?: Phaser.GameObjects.Arc;
   private enemies: EnemyActor[] = [];
@@ -186,6 +221,13 @@ export class ExpeditionScene extends Phaser.Scene {
     armor: 5,
     speed: 238,
     damageMultiplier: 1,
+    regenerationPerSecond: 0,
+    experienceMultiplier: 1,
+    cooldownMultiplier: 1,
+    rangeMultiplier: 1,
+    durationMultiplier: 1,
+    healingMultiplier: 1,
+    pickupRadiusMultiplier: 1,
   };
   private elapsed = 0;
   private accumulator = 0;
@@ -223,6 +265,15 @@ export class ExpeditionScene extends Phaser.Scene {
   private touchMovement: MovementVector = { x: 0, y: 0 };
   private movementBindings: MovementBindings = { ...DEFAULT_MOVEMENT_BINDINGS };
   private readonly pressedKeyboardCodes = new Set<string>();
+  private currentUpgradeChoices: UpgradeDefinition[] = [];
+  private bannedUpgrades = new Set<UpgradeId>();
+  private rerolls = 0;
+  private banishes = 0;
+  private synergyMisses = 0;
+  private evolutionMisses = 0;
+  private resurrectionCharges = 0;
+  private killsByEnemy: Record<string, number> = {};
+  private discoveredThisRun = new Set<string>();
 
   public constructor() {
     super('expedition');
@@ -243,6 +294,9 @@ export class ExpeditionScene extends Phaser.Scene {
     this.cameras.main.setZoom(1);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.handleResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.handleShutdown, this);
+    this.dispatchDiscovery(['maps:bell-moor', codexUpgradeId('executioner-axe')], [
+      codexUpgradeId('executioner-axe'),
+    ]);
     this.emitHud();
   }
 
@@ -262,19 +316,47 @@ export class ExpeditionScene extends Phaser.Scene {
   }
 
   public chooseUpgrade(id: UpgradeId): void {
-    if (!this.awaitingUpgrade || this.ended) {
+    if (
+      !this.awaitingUpgrade ||
+      this.ended ||
+      !this.currentUpgradeChoices.some((choice) => choice.id === id)
+    ) {
       return;
     }
 
     this.upgradeLevels = applyUpgrade(this.upgradeLevels, id);
     this.applyPassiveEffects(id);
+    this.dispatchDiscovery([codexUpgradeId(id)], [codexUpgradeId(id)]);
     this.pendingLevels = Math.max(0, this.pendingLevels - 1);
     this.awaitingUpgrade = false;
+    this.currentUpgradeChoices = [];
 
     if (this.pendingLevels > 0) {
       this.openUpgradeSelection();
     }
     this.emitHud();
+  }
+
+  public rerollUpgrades(): void {
+    if (!this.awaitingUpgrade || this.ended || this.rerolls <= 0) {
+      return;
+    }
+    this.rerolls -= 1;
+    this.generateUpgradeChoices(false);
+  }
+
+  public banishUpgrade(id: UpgradeId): void {
+    if (
+      !this.awaitingUpgrade ||
+      this.ended ||
+      this.banishes <= 0 ||
+      !this.currentUpgradeChoices.some((choice) => choice.id === id)
+    ) {
+      return;
+    }
+    this.banishes -= 1;
+    this.bannedUpgrades.add(id);
+    this.generateUpgradeChoices(false);
   }
 
   public togglePause(force?: boolean): void {
@@ -314,6 +396,10 @@ export class ExpeditionScene extends Phaser.Scene {
       paused: this.pausedByUser,
       ended: this.ended,
       upgrades: { ...this.upgradeLevels },
+      threatLevel: this.threatLevel,
+      resurrectionAvailable: this.resurrectionCharges > 0,
+      rerolls: this.rerolls,
+      banishes: this.banishes,
     };
   }
 
@@ -356,7 +442,13 @@ export class ExpeditionScene extends Phaser.Scene {
       typeof data.seed === 'number' && Number.isFinite(data.seed)
         ? Math.max(1, Math.floor(data.seed))
         : Date.now() & 0x7fff_ffff;
-    this.forgeLevel = Math.max(0, Math.floor(data.forgeLevel ?? 0));
+    this.permanentLevels = {
+      ...createEmptyPermanentUpgradeLevels(),
+      ...data.permanentUpgrades,
+    };
+    this.permanent = permanentBonuses(this.permanentLevels);
+    this.threatLevel = clampThreatLevel(data.threatLevel ?? 1);
+    this.threat = threatModifiers(this.threatLevel);
     this.movementBindings = {
       ...DEFAULT_MOVEMENT_BINDINGS,
       ...data.movementBindings,
@@ -373,13 +465,20 @@ export class ExpeditionScene extends Phaser.Scene {
     this.parallaxOffsetX = 0;
     this.parallaxOffsetY = 0;
     this.upgradeLevels = { 'executioner-axe': 1 };
-    const forgeBonus = this.forgeLevel * 0.04;
+    const maximumHealth = 80 + this.permanent.maximumHealthBonus;
     this.stats = {
-      health: 80,
-      maximumHealth: 80,
-      armor: 5,
-      speed: 238,
-      damageMultiplier: 1 + forgeBonus,
+      health: maximumHealth,
+      maximumHealth,
+      armor: 5 + this.permanent.armorBonus,
+      speed: 238 * this.permanent.movementMultiplier,
+      damageMultiplier: this.permanent.damageMultiplier,
+      regenerationPerSecond: this.permanent.regenerationPerSecond,
+      experienceMultiplier: this.permanent.experienceMultiplier,
+      cooldownMultiplier: this.permanent.cooldownMultiplier,
+      rangeMultiplier: this.permanent.rangeMultiplier,
+      durationMultiplier: this.permanent.durationMultiplier,
+      healingMultiplier: this.permanent.healingMultiplier,
+      pickupRadiusMultiplier: this.permanent.pickupRadiusMultiplier,
     };
     this.elapsed = 0;
     this.accumulator = 0;
@@ -414,6 +513,15 @@ export class ExpeditionScene extends Phaser.Scene {
     this.inputMode = 'keyboard';
     this.touchMovement = { x: 0, y: 0 };
     this.pressedKeyboardCodes.clear();
+    this.currentUpgradeChoices = [];
+    this.bannedUpgrades.clear();
+    this.rerolls = this.permanent.rerolls;
+    this.banishes = this.permanent.banishes;
+    this.synergyMisses = 0;
+    this.evolutionMisses = 0;
+    this.resurrectionCharges = this.permanent.resurrectionCharges;
+    this.killsByEnemy = {};
+    this.discoveredThisRun.clear();
   }
 
   private drawArena(): void {
@@ -541,6 +649,13 @@ export class ExpeditionScene extends Phaser.Scene {
     this.elapsed += step;
     this.hudAccumulator += step;
     this.playerHitGrace = Math.max(0, this.playerHitGrace - step);
+    if (this.stats.health > 0 && this.stats.regenerationPerSecond > 0) {
+      this.stats.health = applyHealing(
+        this.stats.health,
+        this.stats.maximumHealth,
+        this.stats.regenerationPerSecond * step,
+      );
+    }
     this.movePlayer(step);
     this.updateSpawning(step);
     this.updateEnemyStatuses(step);
@@ -620,29 +735,31 @@ export class ExpeditionScene extends Phaser.Scene {
     if (this.enemies.length >= MAX_ENEMIES || this.bossSpawned) {
       return;
     }
-    for (const wave of encounterWavesBetween(this.elapsed - step, this.elapsed)) {
+    for (const wave of encounterWavesBetween(
+      this.elapsed - step,
+      this.elapsed,
+      this.threatLevel,
+    )) {
       this.spawnEncounterWave(wave);
     }
 
     const perSecond =
       Math.min(5.8, 0.85 + this.elapsed / 75) *
-      ambientSpawnMultiplier(this.elapsed);
+      ambientSpawnMultiplier(this.elapsed, this.threatLevel) *
+      (1 + (this.threatLevel - 1) * 0.03);
     this.spawnAccumulator += step * perSecond;
 
     while (this.spawnAccumulator >= 1 && this.enemies.length < MAX_ENEMIES) {
       this.spawnAccumulator -= 1;
       const roll = this.rng.next();
-      if (this.elapsed > 165 && roll < 0.035) {
-        this.spawnEnemy(ENEMIES['ruin-herald']);
-      } else if (this.elapsed > 125 && roll < 0.13) {
-        this.spawnEnemy(ENEMIES['armored-penitent']);
-      } else if (this.elapsed > 90 && roll < 0.29) {
-        this.spawnEnemy(ENEMIES.cultist);
-      } else if (this.elapsed > 35 && roll < 0.52) {
-        this.spawnEnemy(ENEMIES.runner);
-      } else {
-        this.spawnEnemy(ENEMIES.crawler);
-      }
+      const specialRoll = this.threatLevel >= 2 ? this.rng.next() : 1;
+      const enemy = ambientEnemyForRoll(
+        this.elapsed,
+        roll,
+        this.threatLevel,
+        specialRoll,
+      );
+      this.spawnEnemy(ENEMIES[enemy]);
     }
   }
 
@@ -784,7 +901,8 @@ export class ExpeditionScene extends Phaser.Scene {
       ease: 'Cubic.Out',
     });
 
-    const difficulty = 1 + Math.min(1.2, this.elapsed / 360);
+    const difficulty =
+      (1 + Math.min(1.2, this.elapsed / 360)) * this.threat.healthMultiplier;
     this.enemies.push({
       id: this.nextEnemyId,
       definition,
@@ -796,7 +914,11 @@ export class ExpeditionScene extends Phaser.Scene {
       actionCooldown: this.rng.next() * 2,
       poisonStacks: [],
       poisonTickAccumulator: 0,
+      dashRemaining: 0,
+      dashX: 0,
+      dashY: 0,
     });
+    this.dispatchDiscovery([codexEnemyId(definition.id)], []);
     this.nextEnemyId += 1;
   }
 
@@ -812,15 +934,30 @@ export class ExpeditionScene extends Phaser.Scene {
       const deltaY = this.player.y - enemy.shape.y;
       const distance = Math.max(0.001, Math.hypot(deltaX, deltaY));
       const isRanged =
-        enemy.definition.role === 'ranged' || enemy.definition.role === 'support';
-      const desiredDistance = enemy.definition.role === 'support' ? 280 : isRanged ? 320 : 0;
+        enemy.definition.role === 'ranged' ||
+        enemy.definition.role === 'support' ||
+        enemy.definition.role === 'summoner' ||
+        enemy.definition.role === 'healer' ||
+        enemy.definition.role === 'hazard';
+      const desiredDistance =
+        enemy.definition.role === 'support' || enemy.definition.role === 'healer'
+          ? 280
+          : isRanged
+            ? 340
+            : 0;
       const moveDirection = distance > desiredDistance ? 1 : -0.35;
       const speedScale = this.enemySpeedMultiplier(enemy);
 
-      enemy.shape.x +=
-        (deltaX / distance) * enemy.definition.speed * speedScale * moveDirection * step;
-      enemy.shape.y +=
-        (deltaY / distance) * enemy.definition.speed * speedScale * moveDirection * step;
+      if (enemy.dashRemaining > 0) {
+        enemy.dashRemaining = Math.max(0, enemy.dashRemaining - step);
+        enemy.shape.x += enemy.dashX * step;
+        enemy.shape.y += enemy.dashY * step;
+      } else {
+        enemy.shape.x +=
+          (deltaX / distance) * enemy.definition.speed * speedScale * moveDirection * step;
+        enemy.shape.y +=
+          (deltaY / distance) * enemy.definition.speed * speedScale * moveDirection * step;
+      }
       enemy.statusRing.setPosition(enemy.shape.x, enemy.shape.y);
 
       if (distance <= enemy.definition.radius + PLAYER_RADIUS && enemy.contactCooldown <= 0) {
@@ -828,7 +965,11 @@ export class ExpeditionScene extends Phaser.Scene {
         enemy.contactCooldown = 0.7;
       }
 
-      if (isRanged && distance < 520 && enemy.actionCooldown <= 0) {
+      if (
+        (enemy.definition.role === 'ranged' || enemy.definition.role === 'support') &&
+        distance < 520 &&
+        enemy.actionCooldown <= 0
+      ) {
         this.createProjectile(
           enemy.shape.x,
           enemy.shape.y,
@@ -840,6 +981,44 @@ export class ExpeditionScene extends Phaser.Scene {
           1,
         );
         enemy.actionCooldown = enemy.definition.role === 'support' ? 3.2 : 2.4;
+      }
+
+      if (enemy.definition.role === 'guardian') {
+        const open = enemy.actionCooldown <= 0.7;
+        enemy.shape.setStrokeStyle(5, open ? 0xd7b77d : 0x9fc4d1, open ? 0.48 : 0.95);
+        if (enemy.actionCooldown <= 0) {
+          enemy.actionCooldown = 2.8;
+        }
+      }
+
+      if (enemy.definition.role === 'summoner' && enemy.actionCooldown <= 0) {
+        for (const offset of [-26, 26]) {
+          this.spawnEnemy(ENEMIES.crawler, {
+            x: Phaser.Math.Clamp(enemy.shape.x + offset, 20, WORLD_SIZE - 20),
+            y: Phaser.Math.Clamp(enemy.shape.y + this.rng.integer(-20, 20), 20, WORLD_SIZE - 20),
+          });
+        }
+        this.showEnemyPulse(enemy, 0x8a5aa0);
+        enemy.actionCooldown = 5.5;
+      }
+
+      if (enemy.definition.role === 'hazard' && enemy.actionCooldown <= 0) {
+        this.createEnemyHazard(enemy.definition.damage * this.threat.damageMultiplier);
+        enemy.actionCooldown = 4.8;
+      }
+
+      if (enemy.definition.role === 'healer' && enemy.actionCooldown <= 0) {
+        this.healNearbyEnemies(enemy);
+        enemy.actionCooldown = 4.5;
+      }
+
+      if (enemy.definition.role === 'hunter' && enemy.actionCooldown <= 0) {
+        const dashSpeed = 250;
+        enemy.dashX = (deltaX / distance) * dashSpeed;
+        enemy.dashY = (deltaY / distance) * dashSpeed;
+        enemy.dashRemaining = 0.72;
+        enemy.actionCooldown = 3.4;
+        this.showEnemyPulse(enemy, 0x72a7ae);
       }
 
       if (enemy.definition.role === 'boss' && enemy.actionCooldown <= 0) {
@@ -890,7 +1069,39 @@ export class ExpeditionScene extends Phaser.Scene {
   }
 
   private enemyDamageMultiplier(enemy: EnemyActor): number {
-    return this.hasNearbyHerald(enemy) ? 1.18 : 1;
+    return (this.hasNearbyHerald(enemy) ? 1.18 : 1) * this.threat.damageMultiplier;
+  }
+
+  private healNearbyEnemies(source: EnemyActor): void {
+    for (const enemy of this.enemies) {
+      if (
+        enemy !== source &&
+        Phaser.Math.Distance.Between(
+          source.shape.x,
+          source.shape.y,
+          enemy.shape.x,
+          enemy.shape.y,
+        ) <= 240
+      ) {
+        enemy.health = Math.min(enemy.maximumHealth, enemy.health + enemy.maximumHealth * 0.12);
+      }
+    }
+    this.showEnemyPulse(source, 0xd6ca87);
+  }
+
+  private showEnemyPulse(enemy: EnemyActor, color: number): void {
+    const pulse = this.add
+      .circle(enemy.shape.x, enemy.shape.y, enemy.definition.radius + 8, color, 0.08)
+      .setStrokeStyle(3, color, 0.65)
+      .setDepth(36);
+    this.tweens.add({
+      targets: pulse,
+      scaleX: 2.3,
+      scaleY: 2.3,
+      alpha: 0,
+      duration: this.reducedEffects ? 90 : 360,
+      onComplete: () => pulse.destroy(),
+    });
   }
 
   private hasNearbyHerald(enemy: EnemyActor): boolean {
@@ -922,7 +1133,7 @@ export class ExpeditionScene extends Phaser.Scene {
       enemy.shape.x,
       enemy.shape.y,
     );
-    if (distance > stats.range + enemy.definition.radius) {
+    if (distance > stats.range * this.stats.rangeMultiplier + enemy.definition.radius) {
       return 1;
     }
     return slowMultiplier(
@@ -945,9 +1156,11 @@ export class ExpeditionScene extends Phaser.Scene {
       this.activateAxe(axeLevel);
       const evolutionLevel = this.upgradeLevels['barbarian-fury'] ?? 0;
       this.axeCooldown =
-        evolutionLevel > 0
-          ? atLevel(BARBARIAN_FURY_LEVELS, evolutionLevel).cooldown
-          : atLevel(AXE_LEVELS, axeLevel).cooldown;
+        this.weaponCooldown(
+          evolutionLevel > 0
+            ? atLevel(BARBARIAN_FURY_LEVELS, evolutionLevel).cooldown
+            : atLevel(AXE_LEVELS, axeLevel).cooldown,
+        );
     }
 
     const crossbowLevel = this.upgradeLevels['watch-crossbow'] ?? 0;
@@ -955,9 +1168,11 @@ export class ExpeditionScene extends Phaser.Scene {
       this.activateCrossbow(crossbowLevel);
       const evolutionLevel = this.upgradeLevels['piercing-oath'] ?? 0;
       this.crossbowCooldown =
-        evolutionLevel > 0
-          ? atLevel(PIERCING_OATH_LEVELS, evolutionLevel).cooldown
-          : atLevel(CROSSBOW_LEVELS, crossbowLevel).cooldown;
+        this.weaponCooldown(
+          evolutionLevel > 0
+            ? atLevel(PIERCING_OATH_LEVELS, evolutionLevel).cooldown
+            : atLevel(CROSSBOW_LEVELS, crossbowLevel).cooldown,
+        );
     }
 
     const auraLevel = this.upgradeLevels['celestial-aura'] ?? 0;
@@ -968,8 +1183,11 @@ export class ExpeditionScene extends Phaser.Scene {
       this.clearDivineAuraField();
       if (auraLevel > 0 && this.auraCooldown <= 0) {
         const stats = atLevel(CELESTIAL_AURA_LEVELS, auraLevel);
-        this.activateCelestialAura(stats.range, stats.damage);
-        this.auraCooldown = stats.cooldown;
+        this.activateCelestialAura(
+          stats.range * this.stats.rangeMultiplier,
+          stats.damage,
+        );
+        this.auraCooldown = this.weaponCooldown(stats.cooldown);
       }
     }
 
@@ -978,9 +1196,11 @@ export class ExpeditionScene extends Phaser.Scene {
       this.activateWidowVenom(venomLevel);
       const evolutionLevel = this.upgradeLevels['black-widow'] ?? 0;
       this.venomCooldown =
-        evolutionLevel > 0
-          ? atLevel(BLACK_WIDOW_LEVELS, evolutionLevel).cooldown
-          : atLevel(WIDOW_VENOM_LEVELS, venomLevel).cooldown;
+        this.weaponCooldown(
+          evolutionLevel > 0
+            ? atLevel(BLACK_WIDOW_LEVELS, evolutionLevel).cooldown
+            : atLevel(WIDOW_VENOM_LEVELS, venomLevel).cooldown,
+        );
     }
 
     const spearLevel = this.upgradeLevels.spear ?? 0;
@@ -988,9 +1208,11 @@ export class ExpeditionScene extends Phaser.Scene {
       this.activateSpear(spearLevel);
       const evolutionLevel = this.upgradeLevels.impaler ?? 0;
       this.spearCooldown =
-        evolutionLevel > 0
-          ? atLevel(IMPALER_LEVELS, evolutionLevel).cooldown
-          : atLevel(SPEAR_LEVELS, spearLevel).cooldown;
+        this.weaponCooldown(
+          evolutionLevel > 0
+            ? atLevel(IMPALER_LEVELS, evolutionLevel).cooldown
+            : atLevel(SPEAR_LEVELS, spearLevel).cooldown,
+        );
     }
 
     const lanternLevel = this.upgradeLevels['ash-lantern'] ?? 0;
@@ -1003,6 +1225,10 @@ export class ExpeditionScene extends Phaser.Scene {
     }
   }
 
+  private weaponCooldown(base: number): number {
+    return Math.max(0.18, base * this.stats.cooldownMultiplier);
+  }
+
   private activateAxe(level: number): void {
     if (!this.player) {
       return;
@@ -1010,20 +1236,21 @@ export class ExpeditionScene extends Phaser.Scene {
     const evolutionLevel = this.upgradeLevels['barbarian-fury'] ?? 0;
     if (evolutionLevel > 0) {
       const stats = atLevel(BARBARIAN_FURY_LEVELS, evolutionLevel);
-      this.showSpin(stats.range, 0xc86a39, 0.62, 1);
+      const range = stats.range * this.stats.rangeMultiplier;
+      this.showSpin(range, 0xc86a39, 0.62, 1);
       this.damageEnemiesInRadius(
         this.player.x,
         this.player.y,
-        stats.range,
+        range,
         stats.firstDamage * this.stats.damageMultiplier,
       );
       this.time.delayedCall(180, () => {
         if (!this.ended && this.player) {
-          this.showSpin(stats.range, 0xf0a251, 0.46, -1);
+          this.showSpin(range, 0xf0a251, 0.46, -1);
           this.damageEnemiesInRadius(
             this.player.x,
             this.player.y,
-            stats.range,
+            range,
             stats.secondDamage * this.stats.damageMultiplier,
           );
         }
@@ -1031,14 +1258,15 @@ export class ExpeditionScene extends Phaser.Scene {
       return;
     }
     const stats = atLevel(AXE_LEVELS, level);
+    const range = stats.range * this.stats.rangeMultiplier;
     const facingAngle = Math.atan2(this.facingY, this.facingX);
-    this.showArc(stats.range, facingAngle, stats.arcDegrees, 0xc86a39);
+    this.showArc(range, facingAngle, stats.arcDegrees, 0xc86a39);
     this.damageEnemiesInArc(
       this.player.x,
       this.player.y,
       this.facingX,
       this.facingY,
-      stats.range,
+      range,
       stats.arcDegrees,
       stats.damage * this.stats.damageMultiplier,
     );
@@ -1099,21 +1327,22 @@ export class ExpeditionScene extends Phaser.Scene {
       return;
     }
     const stats = atLevel(DIVINE_AURA_LEVELS, evolutionLevel);
+    const range = stats.range * this.stats.rangeMultiplier;
     if (!this.divineAuraField || !this.divineAuraCore) {
       this.divineAuraField = this.add
-        .circle(this.player.x, this.player.y, stats.range, 0xe6dc9b, 0.055)
+        .circle(this.player.x, this.player.y, range, 0xe6dc9b, 0.055)
         .setStrokeStyle(3, 0xe7dc9b, 0.3)
         .setDepth(22)
         .setBlendMode(Phaser.BlendModes.ADD);
       this.divineAuraCore = this.add
-        .circle(this.player.x, this.player.y, stats.range * 0.72, 0xffffff, 0)
+        .circle(this.player.x, this.player.y, range * 0.72, 0xffffff, 0)
         .setStrokeStyle(2, 0xf1e9bb, 0.18)
         .setDepth(23);
     }
-    this.divineAuraField.setPosition(this.player.x, this.player.y).setRadius(stats.range);
+    this.divineAuraField.setPosition(this.player.x, this.player.y).setRadius(range);
     this.divineAuraCore
       .setPosition(this.player.x, this.player.y)
-      .setRadius(stats.range * 0.72);
+      .setRadius(range * 0.72);
     this.divineAuraCore.rotation += step * 0.18;
     this.divineAuraTickAccumulator += step;
     while (this.divineAuraTickAccumulator >= stats.tickInterval) {
@@ -1121,7 +1350,7 @@ export class ExpeditionScene extends Phaser.Scene {
       this.damageEnemiesInRadius(
         this.player.x,
         this.player.y,
-        stats.range,
+        range,
         stats.damagePerTick * this.stats.damageMultiplier,
       );
     }
@@ -1164,7 +1393,7 @@ export class ExpeditionScene extends Phaser.Scene {
         1,
         {
           damagePerSecond: stats.damagePerSecond * Math.max(0.6, damageScale),
-          duration: stats.duration,
+          duration: stats.duration * this.stats.durationMultiplier,
           maximumStacks: stats.maximumStacks,
           blackWidow: evolutionLevel > 0,
           vulnerability: stats.damageVulnerability,
@@ -1189,9 +1418,10 @@ export class ExpeditionScene extends Phaser.Scene {
     const evolutionLevel = this.upgradeLevels.impaler ?? 0;
     if (evolutionLevel > 0) {
       const stats = atLevel(IMPALER_LEVELS, evolutionLevel);
-      this.showSpearStrike(stats.range, stats.width, 0xe5c88c);
+      const range = stats.range * this.stats.rangeMultiplier;
+      this.showSpearStrike(range, stats.width, 0xe5c88c);
       this.damageEnemiesInLine(
-        stats.range,
+        range,
         stats.width,
         stats.maximumTargets,
         stats.outwardDamage * this.stats.damageMultiplier,
@@ -1200,9 +1430,9 @@ export class ExpeditionScene extends Phaser.Scene {
         if (this.ended || !this.player) {
           return;
         }
-        this.showSpearStrike(stats.range, stats.width * 0.8, 0xc57c52, true);
+        this.showSpearStrike(range, stats.width * 0.8, 0xc57c52, true);
         this.damageEnemiesInLine(
-          stats.range,
+          range,
           stats.width,
           stats.maximumTargets,
           stats.returnDamage * this.stats.damageMultiplier,
@@ -1211,9 +1441,10 @@ export class ExpeditionScene extends Phaser.Scene {
       return;
     }
     const stats = atLevel(SPEAR_LEVELS, level);
-    this.showSpearStrike(stats.range, stats.width, 0xd4b778);
+    const range = stats.range * this.stats.rangeMultiplier;
+    this.showSpearStrike(range, stats.width, 0xd4b778);
     this.damageEnemiesInLine(
-      stats.range,
+      range,
       stats.width,
       stats.maximumTargets,
       stats.damage * this.stats.damageMultiplier,
@@ -1241,23 +1472,23 @@ export class ExpeditionScene extends Phaser.Scene {
       .circle(
         this.player.x - this.facingX * 20,
         this.player.y - this.facingY * 20,
-        stats.radius,
+        stats.radius * this.stats.rangeMultiplier,
         evolutionLevel > 0 ? 0xd84b27 : 0xa65c32,
-        evolutionLevel > 0 ? 0.13 : 0.09,
+        evolutionLevel > 0 ? 0.17 : 0.12,
       )
-      .setStrokeStyle(2, evolutionLevel > 0 ? 0xf08a42 : 0xc77b43, 0.26)
+      .setStrokeStyle(2, evolutionLevel > 0 ? 0xf08a42 : 0xc77b43, 0.34)
       .setDepth(18)
       .setBlendMode(Phaser.BlendModes.ADD);
     this.ashTrail.push({
       shape,
-      remaining: stats.duration,
+      remaining: stats.duration * this.stats.durationMultiplier,
       tickAccumulator: 0,
       tickDamage: stats.tickDamage * this.stats.damageMultiplier,
       tickInterval: stats.tickInterval,
       explosionDamage: stats.explosionDamage * this.stats.damageMultiplier,
-      explosionRadius: stats.explosionRadius,
+      explosionRadius: stats.explosionRadius * this.stats.rangeMultiplier,
     });
-    this.lanternPlacementCooldown = stats.placementInterval;
+    this.lanternPlacementCooldown = this.weaponCooldown(stats.placementInterval);
   }
 
   private createProjectile(
@@ -1292,7 +1523,7 @@ export class ExpeditionScene extends Phaser.Scene {
       velocityX: directionX * speed,
       velocityY: directionY * speed,
       damage,
-      remainingLife: 2.2,
+      remainingLife: 2.2 * (kind === 'hostile' ? 1 : this.stats.rangeMultiplier),
       remainingHits: hits,
       kind,
       hitIds: new Set<number>(),
@@ -1378,7 +1609,29 @@ export class ExpeditionScene extends Phaser.Scene {
       shape,
       remaining: 2.1,
       triggerAt: 0.7,
-      damage: 28,
+      damage: 28 * this.threat.damageMultiplier,
+      triggered: false,
+    });
+  }
+
+  private createEnemyHazard(damage: number): void {
+    if (!this.player || this.hazards.length >= 36) {
+      return;
+    }
+    const shape = this.add.circle(
+      this.player.x + this.rng.integer(-90, 90),
+      this.player.y + this.rng.integer(-90, 90),
+      62,
+      0x66783e,
+      0.1,
+    );
+    shape.setStrokeStyle(3, 0xa1b862, 0.7);
+    shape.setDepth(20);
+    this.hazards.push({
+      shape,
+      remaining: 1.8,
+      triggerAt: 0.55,
+      damage,
       triggered: false,
     });
   }
@@ -1418,7 +1671,7 @@ export class ExpeditionScene extends Phaser.Scene {
     for (const segment of this.ashTrail) {
       segment.remaining -= step;
       segment.tickAccumulator += step;
-      segment.shape.setAlpha(Math.min(0.16, 0.035 + segment.remaining * 0.035));
+      segment.shape.setAlpha(Math.min(0.18, 0.045 + segment.remaining * 0.03));
       while (segment.tickAccumulator >= segment.tickInterval) {
         segment.tickAccumulator -= segment.tickInterval;
         for (const enemy of [...this.enemies]) {
@@ -1542,7 +1795,12 @@ export class ExpeditionScene extends Phaser.Scene {
               stack.blackWidow ? Math.max(maximum, stack.vulnerability) : maximum,
             0,
           );
-    const armorScale = enemy.definition.role === 'tank' ? 0.72 : 1;
+    const guardianBlocking =
+      source === 'weapon' &&
+      enemy.definition.role === 'guardian' &&
+      enemy.actionCooldown > 0.7;
+    const armorScale =
+      enemy.definition.role === 'tank' ? 0.72 : guardianBlocking ? 0.42 : 1;
     enemy.health -= applyDamageVulnerability(amount, vulnerability, source) * armorScale;
     enemy.shape.setScale(enemy.definition.visual.baseScale * 1.12);
     this.tweens.add({
@@ -1563,15 +1821,21 @@ export class ExpeditionScene extends Phaser.Scene {
     }
     const defeatedX = enemy.shape.x;
     const defeatedY = enemy.shape.y;
+    const shouldSplit = enemy.definition.role === 'splitter';
     this.spreadPoison(enemy, defeatedX, defeatedY);
     this.enemies.splice(index, 1);
     enemy.shape.destroy();
     enemy.statusRing.destroy();
     this.kills += 1;
+    this.killsByEnemy[enemy.definition.id] =
+      (this.killsByEnemy[enemy.definition.id] ?? 0) + 1;
+    this.dispatchDiscovery([], [codexEnemyId(enemy.definition.id)]);
     this.spawnExperience(enemy, defeatedX, defeatedY);
     if (
       this.healingDrops < 4 &&
-      (enemy.definition.role === 'elite' || enemy.definition.role === 'support')
+      (enemy.definition.role === 'elite' ||
+        enemy.definition.role === 'support' ||
+        enemy.definition.role === 'healer')
     ) {
       this.spawnHealingFragment(defeatedX, defeatedY);
     }
@@ -1579,7 +1843,17 @@ export class ExpeditionScene extends Phaser.Scene {
       this.evolutionsUnlocked = true;
     }
 
+    if (shouldSplit) {
+      for (const offset of [-22, 22]) {
+        this.spawnEnemy(ENEMIES.crawler, {
+          x: Phaser.Math.Clamp(defeatedX + offset, 20, WORLD_SIZE - 20),
+          y: Phaser.Math.Clamp(defeatedY + this.rng.integer(-14, 14), 20, WORLD_SIZE - 20),
+        });
+      }
+    }
+
     if (enemy.definition.role === 'boss') {
+      this.dispatchDiscovery(['maps:bell-moor'], ['maps:bell-moor']);
       this.finish('victory');
     }
   }
@@ -1725,7 +1999,7 @@ export class ExpeditionScene extends Phaser.Scene {
       const deltaX = this.player.x - pickup.shape.x;
       const deltaY = this.player.y - pickup.shape.y;
       const distance = Math.max(1, Math.hypot(deltaX, deltaY));
-      if (distance < 180) {
+      if (distance < 180 * this.stats.pickupRadiusMultiplier) {
         const speed = distance < 70 ? 600 : 280;
         pickup.shape.x += (deltaX / distance) * speed * step;
         pickup.shape.y += (deltaY / distance) * speed * step;
@@ -1737,7 +2011,7 @@ export class ExpeditionScene extends Phaser.Scene {
           this.stats.health = applyHealing(
             this.stats.health,
             this.stats.maximumHealth,
-            this.stats.maximumHealth * pickup.value,
+            this.stats.maximumHealth * pickup.value * this.stats.healingMultiplier,
           );
           this.showHealingEffect();
         }
@@ -1753,7 +2027,11 @@ export class ExpeditionScene extends Phaser.Scene {
   }
 
   private gainExperience(amount: number): void {
-    const progress = addExperience(this.level, this.experience, amount);
+    const progress = addExperience(
+      this.level,
+      this.experience,
+      amount * this.stats.experienceMultiplier,
+    );
     this.level = progress.level;
     this.experience = progress.experience;
     this.experienceForNext = progress.experienceForNext;
@@ -1765,19 +2043,58 @@ export class ExpeditionScene extends Phaser.Scene {
 
   private openUpgradeSelection(): void {
     this.awaitingUpgrade = true;
-    const choices = createUpgradeChoices(this.upgradeLevels, this.rng, 3, {
+    this.generateUpgradeChoices(true);
+  }
+
+  private generateUpgradeChoices(updatePity: boolean): void {
+    const choices = createUpgradeChoices(
+      this.upgradeLevels,
+      this.rng,
+      this.permanent.choiceCount,
+      {
       evolutionsUnlocked: this.evolutionsUnlocked,
       maximumWeapons: 4,
-    });
+        excludedIds: [...this.bannedUpgrades],
+        guaranteeSynergy: this.synergyMisses >= 2,
+        guaranteeEvolution: this.evolutionMisses >= 2,
+      },
+    );
     if (choices.length === 0) {
       this.awaitingUpgrade = false;
       this.pendingLevels = 0;
+      this.currentUpgradeChoices = [];
       return;
+    }
+    this.currentUpgradeChoices = choices;
+    if (updatePity) {
+      const hasEvolution = choices.some((choice) => choice.kind === 'evolution');
+      const hasRelatedPassive = choices.some(
+        (choice) =>
+          choice.kind === 'passive' &&
+          UPGRADES.some(
+            (evolution) =>
+              evolution.requires?.passive === choice.id &&
+              (this.upgradeLevels[evolution.requires.weapon] ?? 0) >= 3 &&
+              (this.upgradeLevels[choice.id] ?? 0) < evolution.requires.passiveLevel,
+          ),
+      );
+      const evolutionReady = UPGRADES.some(
+        (definition) =>
+          definition.kind === 'evolution' &&
+          isUpgradeAvailable(definition, this.upgradeLevels, {
+            evolutionsUnlocked: this.evolutionsUnlocked,
+            excludedIds: [...this.bannedUpgrades],
+          }),
+      );
+      this.synergyMisses = hasRelatedPassive ? 0 : this.synergyMisses + 1;
+      this.evolutionMisses = !evolutionReady || hasEvolution ? 0 : this.evolutionMisses + 1;
     }
     dispatchGameEvent(GAME_EVENTS.upgrade, {
       choices,
       pendingLevels: this.pendingLevels,
       levels: { ...this.upgradeLevels },
+      rerolls: this.rerolls,
+      banishes: this.banishes,
     });
   }
 
@@ -1787,10 +2104,35 @@ export class ExpeditionScene extends Phaser.Scene {
     }
     if (id === 'fallen-vigor') {
       this.stats.maximumHealth += 12;
-      this.stats.health = applyHealing(this.stats.health, this.stats.maximumHealth, 6);
+      this.stats.health = applyHealing(
+        this.stats.health,
+        this.stats.maximumHealth,
+        6 * this.stats.healingMultiplier,
+      );
     }
     if (id === 'hunter-steps') {
       this.stats.speed *= 1.08;
+    }
+    if (id === 'quick-hands') {
+      this.stats.cooldownMultiplier = Math.max(0.35, this.stats.cooldownMultiplier - 0.04);
+    }
+    if (id === 'long-sight') {
+      this.stats.rangeMultiplier += 0.06;
+    }
+    if (id === 'persistence') {
+      this.stats.durationMultiplier += 0.06;
+    }
+    if (id === 'ancient-blood') {
+      this.stats.regenerationPerSecond += 0.08;
+    }
+    if (id === 'wisdom') {
+      this.stats.experienceMultiplier += 0.08;
+    }
+    if (id === 'blessing') {
+      this.stats.healingMultiplier += 0.1;
+    }
+    if (id === 'magnetism') {
+      this.stats.pickupRadiusMultiplier += 0.2;
     }
   }
 
@@ -1814,8 +2156,37 @@ export class ExpeditionScene extends Phaser.Scene {
     this.playerBody?.setFillStyle(0xe08a62, 1);
     this.time.delayedCall(80, () => this.playerBody?.setFillStyle(0xb76538, 1));
     if (this.stats.health <= 0) {
+      if (this.resurrectionCharges > 0) {
+        this.resurrectionCharges -= 1;
+        this.stats.health = this.stats.maximumHealth * 0.5;
+        this.playerHitGrace = 1;
+        this.showResurrectionEffect();
+        this.emitHud();
+        return;
+      }
       this.startDeathSequence();
     }
+  }
+
+  private showResurrectionEffect(): void {
+    if (!this.player) {
+      return;
+    }
+    this.playerBody?.setFillStyle(0xe7d18a, 1);
+    const halo = this.add
+      .circle(this.player.x, this.player.y, 40, 0xf3d884, 0.12)
+      .setStrokeStyle(5, 0xffedaa, 0.9)
+      .setDepth(56)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({
+      targets: halo,
+      scaleX: 3,
+      scaleY: 3,
+      alpha: 0,
+      duration: this.reducedEffects ? 180 : 680,
+      onComplete: () => halo.destroy(),
+    });
+    this.time.delayedCall(1_000, () => this.playerBody?.setFillStyle(0xb76538, 1));
   }
 
   private findNearestEnemy(x: number, y: number): EnemyActor | undefined {
@@ -2021,6 +2392,7 @@ export class ExpeditionScene extends Phaser.Scene {
     }
     this.ended = true;
     this.phase = 'ended';
+    this.dispatchDiscovery(['maps:bell-moor'], ['maps:bell-moor']);
     this.dispatchResult(outcome);
   }
 
@@ -2117,16 +2489,56 @@ export class ExpeditionScene extends Phaser.Scene {
   }
 
   private dispatchResult(outcome: ResultDetail['outcome']): void {
+    const baseEmbers = Math.max(
+      1,
+      Math.floor(this.kills / 4) + (outcome === 'victory' ? 80 : 0),
+    );
     const result: ResultDetail = {
       outcome,
       elapsedSeconds: Math.min(this.elapsed, RUN_DURATION_SECONDS),
       kills: this.kills,
       level: this.level,
-      embers: Math.max(1, Math.floor(this.kills / 4) + (outcome === 'victory' ? 80 : 0)),
+      embers: Math.max(
+        1,
+        Math.floor(
+          baseEmbers * this.permanent.emberMultiplier * this.threat.emberMultiplier,
+        ),
+      ),
       seed: this.seed,
       upgrades: { ...this.upgradeLevels },
+      threatLevel: this.threatLevel,
+      killsByEnemy: { ...this.killsByEnemy },
+      mapId: 'bell-moor',
     };
     dispatchGameEvent(GAME_EVENTS.result, result);
+  }
+
+  private dispatchDiscovery(
+    discovered: readonly CodexEntryId[],
+    mastered: readonly CodexEntryId[],
+  ): void {
+    const freshDiscovered = discovered.filter((id) => {
+      if (this.discoveredThisRun.has(id)) {
+        return false;
+      }
+      this.discoveredThisRun.add(id);
+      return true;
+    });
+    const freshMastered = mastered.filter((id) => {
+      const marker = `mastered:${id}`;
+      if (this.discoveredThisRun.has(marker)) {
+        return false;
+      }
+      this.discoveredThisRun.add(marker);
+      return true;
+    });
+    if (freshDiscovered.length === 0 && freshMastered.length === 0) {
+      return;
+    }
+    dispatchGameEvent(GAME_EVENTS.discovery, {
+      discovered: [...freshDiscovered, ...freshMastered],
+      mastered: freshMastered,
+    });
   }
 
   private isDirectionPressed(direction: MovementDirection): boolean {

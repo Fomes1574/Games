@@ -11,6 +11,9 @@ export type UpgradeLevels = Partial<Record<UpgradeId, number>>;
 export interface UpgradeAvailabilityOptions {
   evolutionsUnlocked?: boolean;
   maximumWeapons?: number;
+  excludedIds?: readonly UpgradeId[];
+  guaranteeSynergy?: boolean;
+  guaranteeEvolution?: boolean;
 }
 
 export function isUpgradeAvailable(
@@ -19,6 +22,9 @@ export function isUpgradeAvailable(
   options: UpgradeAvailabilityOptions = {},
 ): boolean {
   const current = levels[definition.id] ?? 0;
+  if (options.excludedIds?.includes(definition.id)) {
+    return false;
+  }
   if (current >= definition.maxLevel) {
     return false;
   }
@@ -57,12 +63,40 @@ export function createUpgradeChoices(
   const choices: UpgradeDefinition[] = [];
   const remaining = [...available];
 
+  const eligibleEvolution = remaining.filter(
+    (definition) => definition.kind === 'evolution',
+  );
+  const relatedPassives = remaining.filter(
+    (definition) =>
+      definition.kind === 'passive' &&
+      UPGRADES.some(
+        (evolution) =>
+          evolution.requires?.passive === definition.id &&
+          (levels[evolution.requires.weapon] ?? 0) >= 3 &&
+          (levels[definition.id] ?? 0) < evolution.requires.passiveLevel,
+      ),
+  );
+
+  const guaranteedPool =
+    options.guaranteeEvolution && eligibleEvolution.length > 0
+      ? eligibleEvolution
+      : options.guaranteeSynergy && relatedPassives.length > 0
+        ? relatedPassives
+        : [];
+  if (guaranteedPool.length > 0 && choices.length < count) {
+    const guaranteed = rng.pick(guaranteedPool);
+    choices.push(guaranteed);
+    remaining.splice(remaining.indexOf(guaranteed), 1);
+  }
+
   while (choices.length < count && remaining.length > 0) {
     const weighted = remaining.map((definition) => ({
       value: definition,
       weight:
         definition.kind === 'evolution'
           ? 8
+          : relatedPassives.includes(definition)
+            ? 7
           : (levels[definition.id] ?? 0) > 0
             ? 4
             : 2,

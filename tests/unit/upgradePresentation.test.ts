@@ -59,7 +59,7 @@ describe('apresentação compacta de melhorias', () => {
     expect(reinforcement.stats.every((stat) => stat.value.includes('→'))).toBe(true);
   });
 
-  it('mostra bônus acumulados das três passivas', () => {
+  it('mostra bônus acumulados das passivas', () => {
     expect(createUpgradePreview('runic-plate', {}).stats[0]?.value).toBe('+5');
     expect(
       createUpgradePreview('fallen-vigor', { 'fallen-vigor': 2 }).stats[0]?.value,
@@ -67,5 +67,8 @@ describe('apresentação compacta de melhorias', () => {
     expect(
       createUpgradePreview('hunter-steps', { 'hunter-steps': 1 }).stats[0]?.value,
     ).toContain('%');
+    expect(createUpgradePreview('quick-hands', {}).stats[0]?.value).toBe('-4%');
+    expect(createUpgradePreview('persistence', {}).stats[0]?.value).toBe('+6%');
+    expect(createUpgradePreview('ancient-blood', {}).stats[0]?.value).toBe('+0,08/s');
   });
 });

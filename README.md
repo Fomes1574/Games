@@ -2,7 +2,7 @@
 
 Survivors-like 2D dark fantasy para navegador. O jogador comanda uma das últimas guildas vivas em um mundo de noite permanente, envia aventureiros a expedições e retorna com recursos para ampliar suas possibilidades.
 
-> Estado atual: versão 0.5 — fatia vertical jogável em computador e celular, com eventos cronometrados silenciosos, seis armas, seis evoluções, inimigos de suporte e defesa, cura em campo, controles remapeáveis, morte, game over, chefe, guilda e save local.
+> Estado atual: versão 0.6 — fatia vertical jogável em computador e celular, com progressão permanente, Ameaça I–X, Grimório descobrível, dez passivas, inimigos funcionais, eventos silenciosos, seis armas/evoluções, Ressureição, controles remapeáveis e save migrável.
 
 ## Executar
 
@@ -54,7 +54,7 @@ O jogo é totalmente estático. Não existem chaves ou APIs privadas no navegado
 
 1. Escolha **Preparar expedição**.
 2. Revise o Brutamontes e o contrato da Charneca dos Sinos.
-3. Use uma semente opcional ou deixe o campo vazio.
+3. Escolha a maior **Ameaça** já desbloqueada e use uma semente opcional.
 4. Escolha **Assinar contrato e partir**.
 5. Mova-se com WASD, setas ou controle; as armas atacam automaticamente.
 6. Em **Configurações**, selecione qualquer direção e pressione uma nova tecla para remapear o movimento. Esc permanece reservado para pausa.
@@ -62,5 +62,7 @@ O jogo é totalmente estático. Não existem chaves ou APIs privadas no navegado
 No celular, mova-se pelo analógico virtual no canto inferior esquerdo. Melhorias, pausa e menus respondem diretamente ao toque; retrato e paisagem são suportados.
 
 O Brutamontes começa com 80 de vida, 5 de armadura e nenhuma resistência oculta por estar cercado. O limite inicial é de quatro armas por build.
+
+Na guilda, brasas compram melhorias permanentes. **Vida** possui dez níveis de +5; **Ressureição** custa 1.500 brasas e retorna uma vez por expedição com metade da vida e um segundo de invulnerabilidade. O Grimório registra apenas armas, passivas, inimigos, chefes e mapas encontrados.
 
 Licença ainda não definida; não reutilize código ou arte sem autorização do proprietário.

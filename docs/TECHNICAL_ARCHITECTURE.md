@@ -14,6 +14,8 @@ As Scenes orquestram adaptadores; não calculam regras de dano ou progressão. C
 
 `domain/input/touchMovement` normaliza o analógico virtual sem depender do DOM. `AppController` adapta Pointer Events para esse domínio e envia o vetor à Scene; teclado e gamepad mantêm caminhos próprios. A camada HTML de toque só é habilitada em dispositivo compatível e é suspensa quando a simulação não aceita movimento.
 
+`domain/progression/permanentUpgrades` define custos, limites e bônus; `domain/encounters/threat` concentra a curva I–X; `domain/codex` descreve registros e perfis visuais. O save v2 armazena apenas IDs e níveis validados, migra o `forgeLevel` v1 para Dano e mantém checksum após cada alteração.
+
 ## Simulação
 
 Passo fixo com acumulador limitado evita alterações de combate por FPS e espirais após perda de foco. Todos os sistemas recebem RNG com semente; `Math.random()` é proibido no domínio.

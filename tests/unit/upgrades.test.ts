@@ -78,4 +78,20 @@ describe('melhorias', () => {
       false,
     );
   });
+
+  it('usa combinações coerentes nas armas revisadas', () => {
+    expect(getUpgrade('piercing-oath').requires?.passive).toBe('quick-hands');
+    expect(getUpgrade('black-widow').requires?.passive).toBe('persistence');
+    expect(getUpgrade('impaler').requires?.passive).toBe('long-sight');
+  });
+
+  it('reserva uma sinergia relacionada quando a proteção contra azar ativa', () => {
+    const choices = createUpgradeChoices(
+      { 'watch-crossbow': 3 },
+      new SeededRng(1574),
+      3,
+      { guaranteeSynergy: true },
+    );
+    expect(choices.map((choice) => choice.id)).toContain('quick-hands');
+  });
 });

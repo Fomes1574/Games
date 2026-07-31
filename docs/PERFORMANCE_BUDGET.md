@@ -25,3 +25,7 @@ Build de 2026-07-30: HTML 3,86 kB gzip, CSS 5,92 kB gzip e JavaScript 379,59 kB 
 ## Baseline mobile 0.5.0
 
 Build de 2026-07-30: HTML 4,13 kB gzip, CSS 7,15 kB gzip e JavaScript 380,41 kB gzip. O acréscimo corresponde ao analógico virtual, áreas seguras e regras responsivas; não adiciona biblioteca nem loop de renderização. O alerta do chunk inicial continua ligado ao Phaser.
+
+## Baseline de legado e Grimório 0.6.0
+
+Build de 2026-07-31: HTML 4,89 kB gzip, CSS 8,88 kB gzip e JavaScript 388,24 kB gzip. Progressão, Grimório e Ameaça usam dados e HTML/CSS sem nova biblioteca. A simulação determinística contém 266 inimigos agendados somando todos os níveis; somente as ondas permitidas pela Ameaça escolhida entram em uma partida.

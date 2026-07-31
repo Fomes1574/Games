@@ -39,6 +39,37 @@ test('a ação principal responde ao teclado', async ({ page }) => {
   await expect(page.locator('.preparation-steps')).toHaveCount(0);
 });
 
+test('mostra progressão permanente e o Grimório sem excesso de texto', async ({ page }) => {
+  await page.goto('');
+  await page.getByRole('button', { name: 'Sede da guilda' }).click();
+
+  await expect(page.getByRole('heading', { name: 'Melhorias permanentes' })).toBeVisible();
+  await expect(page.locator('.permanent-upgrade-card')).toHaveCount(17);
+  await expect(page.getByText('Dano', { exact: true })).toBeVisible();
+  await expect(page.getByText('+4% de dano', { exact: true })).toBeVisible();
+  await expect(page.getByText('Ressureição', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '1.500 brasas' })).toBeDisabled();
+
+  await page.getByRole('button', { name: 'Abrir Grimório' }).click();
+  await expect(page.getByRole('heading', { name: 'Grimório' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Armas' })).toHaveAttribute(
+    'aria-current',
+    'page',
+  );
+  await expect(page.locator('#codex-entry-list button')).toHaveCount(6);
+  await expect(page.locator('#codex-entry-name')).toHaveText('???');
+});
+
+test('mantém Ameaças altas bloqueadas até uma vitória', async ({ page }) => {
+  await page.goto('');
+  await page.getByRole('button', { name: 'Preparar expedição' }).click();
+
+  await expect(page.getByLabel('Nível de Ameaça')).toHaveValue('1');
+  await expect(page.locator('#threat-select option[value="2"]')).toBeDisabled();
+  await expect(page.locator('#threat-health')).toHaveText('1,00×');
+  await expect(page.locator('#threat-damage')).toHaveText('1,00×');
+});
+
 test('inicia uma partida real e o cenário acompanha o personagem', async ({ page }) => {
   await page.goto('');
   await page.getByRole('button', { name: 'Preparar expedição' }).click();

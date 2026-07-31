@@ -23,3 +23,11 @@ Eventos especiais usam horários fixos e formações determinísticas, mas não 
 ## ADR-006 — Evolução curta para a partida de cinco minutos
 
 Armas possuem cinco níveis, uma transformação condicionada a passiva nível 3 e elite derrotado, e dois níveis posteriores. A build aceita quatro armas para preservar escolhas entre as seis disponíveis.
+
+## ADR-007 — Poder permanente e dificuldade explícita
+
+Upgrades permanentes usam limites finitos e valores aditivos. A dificuldade não acompanha compras escondidamente: Ameaça I–X é escolhida antes da expedição, libera o próximo nível após vitória e aumenta sobretudo a vida inimiga.
+
+## ADR-008 — Descoberta persistente e arte substituível
+
+O Grimório libera identidade ao encontrar e atributos ao dominar. Entradas armazenam IDs e `visualProfile`; silhuetas procedurais podem receber sprites e retratos posteriormente sem alterar regras ou saves.

@@ -14,12 +14,21 @@ export class SaveService {
     try {
       const stored = await this.readIndexedDb();
       if (stored) {
-        return normalizeSave(stored);
+        const normalized = normalizeSave(stored);
+        if ((stored as { version?: unknown }).version !== normalized.version) {
+          await this.save(normalized);
+        }
+        return normalized;
       }
     } catch {
       const fallback = localStorage.getItem(FALLBACK_KEY);
       if (fallback) {
-        return normalizeSave(JSON.parse(fallback) as unknown);
+        const parsed = JSON.parse(fallback) as unknown;
+        const normalized = normalizeSave(parsed);
+        if ((parsed as { version?: unknown }).version !== normalized.version) {
+          await this.save(normalized);
+        }
+        return normalized;
       }
     }
 

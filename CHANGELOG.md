@@ -2,6 +2,25 @@
 
 Todas as mudanças relevantes serão registradas neste arquivo.
 
+## 0.6.0 — 2026-07-31
+
+### Adicionado
+
+- Dezessete melhorias permanentes com cards compactos, custos crescentes e efeitos reais em combate, coleta, economia e escolhas.
+- Vida com dez níveis de +5 e Ressureição por 1.500 brasas, metade da vida e um segundo de invulnerabilidade.
+- Ameaça I–X selecionável, desbloqueio por vitória e crescimento separado de vida, dano e brasas.
+- Mãos Ligeiras, Visão Longa, Persistência, Sangue Antigo, Sabedoria, Bênção e Magnetismo.
+- Guardião Sepulcral, Invocador da Cinza, Semeador da Praga, Estilhaçado, Sacerdote Pálido e Caçador da Bruma com comportamentos próprios.
+- Grimório em formato de livro com páginas, marcadores, descoberta parcial/completa e adaptação para celular.
+- Save v2 com migração automática, descobertas, Ameaça e estatísticas detalhadas.
+- Jackpot, Veto, Visão e proteção contra azar aplicados às escolhas de nível.
+
+### Alterado
+
+- Besta da Vigília agora combina com Mãos Ligeiras; Peçonha da Viúva com Persistência; Lança com Visão Longa.
+- Brasas da Lanterna de Cinzas e de Passos do Inferno ficaram discretamente mais visíveis.
+- Eventos de Ameaça continuam silenciosos e não exibem títulos, banners ou pausas.
+
 ## 0.5.0 — 2026-07-30
 
 ### Adicionado

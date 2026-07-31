@@ -34,6 +34,9 @@
             <button id="guild-action" class="text-action" type="button">
               Sede da guilda
             </button>
+            <button id="codex-action" class="text-action" type="button">
+              Grimório
+            </button>
             <button id="settings-action" class="text-action" type="button">
               Configurações
             </button>
@@ -109,6 +112,26 @@
                 <span>Horda crescente</span>
                 <span>2 elites</span>
                 <span>1 chefe em duas fases</span>
+              </div>
+              <div class="threat-control">
+                <label for="threat-select">Ameaça</label>
+                <select id="threat-select" aria-label="Nível de Ameaça">
+                  <option value="1">I</option>
+                  <option value="2">II</option>
+                  <option value="3">III</option>
+                  <option value="4">IV</option>
+                  <option value="5">V</option>
+                  <option value="6">VI</option>
+                  <option value="7">VII</option>
+                  <option value="8">VIII</option>
+                  <option value="9">IX</option>
+                  <option value="10">X</option>
+                </select>
+                <div class="threat-modifiers" aria-live="polite">
+                  <span>Vida <b id="threat-health">1,00×</b></span>
+                  <span>Dano <b id="threat-damage">1,00×</b></span>
+                  <span>Brasas <b id="threat-embers">1,00×</b></span>
+                </div>
               </div>
               <div class="contract-row">
                 <div>
@@ -205,8 +228,14 @@
           <p class="eyebrow">Nível alcançado</p>
           <h2>Escolha uma melhoria</h2>
           <p id="pending-levels" class="modal-copy"></p>
+          <div id="upgrade-tools" class="upgrade-tools" hidden>
+            <button id="reroll-upgrades" class="text-action" type="button">
+              Jackpot · 0
+            </button>
+            <span id="banish-count">Veto · 0</span>
+          </div>
           <div id="upgrade-choices" class="upgrade-choices"></div>
-          <small class="desktop-hint">Teclas 1, 2 ou 3 · controle e mouse</small>
+          <small class="desktop-hint">Teclas 1–4 · controle e mouse</small>
           <small class="touch-hint">Toque em uma melhoria</small>
         </section>
 
@@ -249,6 +278,7 @@
             <div><span>Abatidos</span><strong id="result-kills">0</strong></div>
             <div><span>Nível</span><strong id="result-level">1</strong></div>
             <div><span>Brasas</span><strong id="result-embers">0</strong></div>
+            <div><span>Ameaça</span><strong id="result-threat">I</strong></div>
           </div>
           <div class="modal-actions">
             <button id="return-guild" class="primary-action" type="button">
@@ -274,27 +304,81 @@
             <span>Brasas preservadas</span>
             <strong id="guild-embers">0</strong>
           </div>
-          <article class="building-card">
-            <div class="building-icon" aria-hidden="true">⚒</div>
-            <div>
-              <p class="card-kicker">Construção disponível</p>
-              <h3>Ferreiro</h3>
-              <p>
-                Cada nível melhora em 4% o dano de todas as armas no início
-                das próximas expedições.
-              </p>
-              <strong id="forge-level">Nível 0 / 5</strong>
+          <section class="progression-section" aria-labelledby="progression-title">
+            <div class="section-heading">
+              <div>
+                <p class="card-kicker">Legado da companhia</p>
+                <h3 id="progression-title">Melhorias permanentes</h3>
+              </div>
+              <span id="threat-unlocked">Ameaça I</span>
             </div>
-            <button id="forge-upgrade" class="secondary-action" type="button">
-              Melhorar · 60 brasas
+            <div id="permanent-upgrades" class="permanent-upgrade-grid"></div>
+          </section>
+          <div class="guild-utility-actions">
+            <button id="guild-codex" class="secondary-action" type="button">
+              Abrir Grimório
             </button>
-          </article>
+          </div>
           <div class="save-actions">
             <button id="export-save" class="text-action" type="button">Exportar save</button>
             <label class="text-action file-action">
               Importar save
               <input id="import-save" type="file" accept="application/json,.json" />
             </label>
+          </div>
+        </section>
+
+        <section
+          id="codex-panel"
+          class="panel codex-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="codex-title"
+          hidden
+        >
+          <header class="panel-header codex-header">
+            <div>
+              <p class="eyebrow">Registros da companhia</p>
+              <h2 id="codex-title">Grimório</h2>
+            </div>
+            <button id="codex-close" class="icon-action" type="button" aria-label="Fechar">
+              ×
+            </button>
+          </header>
+          <nav class="codex-bookmarks" aria-label="Seções do Grimório">
+            <button type="button" data-codex-category="weapons">Armas</button>
+            <button type="button" data-codex-category="passives">Passivas</button>
+            <button type="button" data-codex-category="enemies">Inimigos</button>
+            <button type="button" data-codex-category="bosses">Chefes</button>
+            <button type="button" data-codex-category="maps">Mapas</button>
+          </nav>
+          <div id="codex-book" class="codex-book" data-detail-open="false">
+            <aside class="codex-page codex-index-page" aria-label="Índice">
+              <div class="codex-page-heading">
+                <span id="codex-category-title">Armas</span>
+                <small id="codex-counter">0 / 0</small>
+              </div>
+              <div id="codex-entry-list" class="codex-entry-list"></div>
+            </aside>
+            <article class="codex-page codex-detail-page" aria-live="polite">
+              <button id="codex-mobile-back" class="codex-mobile-back" type="button">
+                Voltar ao índice
+              </button>
+              <div id="codex-art" class="codex-art" aria-hidden="true">
+                <span id="codex-sigil">?</span>
+              </div>
+              <div class="codex-copy">
+                <small id="codex-discovery-state">Não descoberto</small>
+                <h3 id="codex-entry-name">???</h3>
+                <p id="codex-entry-description">Continue explorando.</p>
+                <dl id="codex-entry-stats" class="codex-entry-stats"></dl>
+              </div>
+              <div class="codex-page-actions">
+                <button id="codex-previous" type="button" aria-label="Página anterior">←</button>
+                <span id="codex-page-number">—</span>
+                <button id="codex-next" type="button" aria-label="Próxima página">→</button>
+              </div>
+            </article>
           </div>
         </section>
 
