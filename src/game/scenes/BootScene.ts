@@ -1,6 +1,12 @@
 import Phaser from 'phaser';
 
 import {
+  artTextureAvailable,
+  artTextureKey,
+  enqueueAvailableArt,
+  preloadArtManifest,
+} from '../visuals/artCatalog';
+import {
   enqueueAvailableCharacterSprites,
   preloadSpriteManifest,
 } from '../visuals/spriteCatalog';
@@ -17,6 +23,7 @@ export class BootScene extends Phaser.Scene {
   private farMountains?: Phaser.GameObjects.Graphics;
   private citadel?: Phaser.GameObjects.Graphics;
   private foreground?: Phaser.GameObjects.Graphics;
+  private backdropImage?: Phaser.GameObjects.Image;
   private pointerTargetX = 0;
   private pointerTargetY = 0;
   private parallaxX = 0;
@@ -28,10 +35,12 @@ export class BootScene extends Phaser.Scene {
 
   public preload(): void {
     preloadSpriteManifest(this);
+    preloadArtManifest(this);
   }
 
   public create(): void {
-    this.loadAvailableSprites();
+    this.backdropImage = undefined;
+    this.loadAvailableAssets();
     this.cameras.main.setBackgroundColor('#07090d');
     this.sky = this.add.graphics().setDepth(-100).setScrollFactor(0);
     this.farMountains = this.add.graphics().setDepth(-80).setScrollFactor(0);
@@ -70,14 +79,24 @@ export class BootScene extends Phaser.Scene {
     }
   }
 
-  private loadAvailableSprites(): void {
-    if (enqueueAvailableCharacterSprites(this) > 0) {
+  private loadAvailableAssets(): void {
+    const queued = enqueueAvailableCharacterSprites(this) + enqueueAvailableArt(this);
+    if (queued > 0) {
+      this.load.once(Phaser.Loader.Events.COMPLETE, this.handleAssetsLoaded);
       this.load.start();
     }
   }
 
+  private readonly handleAssetsLoaded = (): void => {
+    this.drawBackdrop();
+  };
+
   private drawBackdrop(): void {
     if (!this.sky || !this.farMountains || !this.citadel || !this.foreground) {
+      return;
+    }
+
+    if (this.drawPaintedBackdrop()) {
       return;
     }
 
@@ -189,6 +208,31 @@ export class BootScene extends Phaser.Scene {
     this.foreground.fillEllipse(width * 0.76, height * 0.86, width * 0.36, height * 0.11);
   }
 
+  private drawPaintedBackdrop(): boolean {
+    const textureKey = artTextureKey('menu-backdrop');
+    if (!textureKey || !artTextureAvailable(this, 'menu-backdrop')) {
+      return false;
+    }
+
+    this.sky?.clear();
+    this.farMountains?.clear();
+    this.citadel?.clear();
+    this.foreground?.clear();
+
+    this.backdropImage ??= this.add
+      .image(0, 0, textureKey)
+      .setDepth(-110)
+      .setScrollFactor(0);
+
+    const width = Math.max(1, this.scale.width);
+    const height = Math.max(1, this.scale.height);
+    const frame = this.backdropImage.frame;
+    const coverScale = Math.max(width / frame.width, height / frame.height) * 1.07;
+    this.backdropImage.setScale(coverScale).setVisible(true);
+    this.positionLayers();
+    return true;
+  }
+
   private drawTower(
     graphics: Phaser.GameObjects.Graphics,
     x: number,
@@ -234,6 +278,12 @@ export class BootScene extends Phaser.Scene {
   }
 
   private positionLayers(): void {
+    if (this.backdropImage) {
+      this.backdropImage.setPosition(
+        this.scale.width / 2 - this.parallaxX * 0.04,
+        this.scale.height / 2 - this.parallaxY * 0.03,
+      );
+    }
     if (this.sky) {
       this.sky.setPosition(-this.parallaxX * 0.04, -this.parallaxY * 0.03);
     }
@@ -264,5 +314,6 @@ export class BootScene extends Phaser.Scene {
     this.scale.off(Phaser.Scale.Events.RESIZE, this.handleResize);
     this.input.off('pointermove', this.handlePointerMove);
     this.embers = [];
+    this.backdropImage = undefined;
   };
 }
