@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 
-import { preloadCharacterSprites } from '../visuals/spriteCatalog';
+import {
+  enqueueAvailableCharacterSprites,
+  preloadSpriteManifest,
+} from '../visuals/spriteCatalog';
 
 interface Ember {
   glow: Phaser.GameObjects.Arc;
@@ -24,10 +27,11 @@ export class BootScene extends Phaser.Scene {
   }
 
   public preload(): void {
-    preloadCharacterSprites(this.load);
+    preloadSpriteManifest(this);
   }
 
   public create(): void {
+    this.loadAvailableSprites();
     this.cameras.main.setBackgroundColor('#07090d');
     this.sky = this.add.graphics().setDepth(-100).setScrollFactor(0);
     this.farMountains = this.add.graphics().setDepth(-80).setScrollFactor(0);
@@ -63,6 +67,12 @@ export class BootScene extends Phaser.Scene {
           height + Phaser.Math.Between(10, 160),
         );
       }
+    }
+  }
+
+  private loadAvailableSprites(): void {
+    if (enqueueAvailableCharacterSprites(this) > 0) {
+      this.load.start();
     }
   }
 

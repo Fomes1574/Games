@@ -6,6 +6,10 @@ import type Phaser from 'phaser';
  * Cada personagem possui quatro quadros de caminhada em PNG com transparência,
  * servidos a partir de `public/assets/sprites`. Os quadros foram normalizados
  * com pivô nos pés e escala estável, conforme `docs/ANIMATION_SPEC.md`.
+ *
+ * O carregamento é guiado por `public/assets/sprites/manifest.json`: somente os
+ * conjuntos listados ali são solicitados, evitando erros de console enquanto os
+ * PNGs ainda não foram publicados.
  */
 
 export interface CharacterSpriteSet {
@@ -20,6 +24,8 @@ export interface CharacterSpriteSet {
 }
 
 const WALK_FRAME_COUNT = 4;
+const SPRITE_MANIFEST_KEY = 'character-sprite-manifest';
+const SPRITE_MANIFEST_FILE = 'manifest.json';
 
 const defineSet = (
   id: string,
@@ -61,18 +67,55 @@ export const ENEMY_SPRITE_SETS: Readonly<Record<string, CharacterSpriteSet>> = {
 const spriteUrl = (file: string): string =>
   `${import.meta.env.BASE_URL}assets/sprites/${file}`;
 
-/** Registra todos os quadros de caminhada no carregador da cena. */
-export const preloadCharacterSprites = (
-  loader: Phaser.Loader.LoaderPlugin,
-): void => {
-  const sets = [PLAYER_SPRITE_SET, ...Object.values(ENEMY_SPRITE_SETS)];
-  for (const set of sets) {
+const allSets = (): CharacterSpriteSet[] => [
+  PLAYER_SPRITE_SET,
+  ...Object.values(ENEMY_SPRITE_SETS),
+];
+
+/** Carrega o manifesto que lista os conjuntos de sprites publicados. */
+export const preloadSpriteManifest = (scene: Phaser.Scene): void => {
+  if (!scene.cache.json.has(SPRITE_MANIFEST_KEY)) {
+    scene.load.json(SPRITE_MANIFEST_KEY, spriteUrl(SPRITE_MANIFEST_FILE));
+  }
+};
+
+const readAvailableSetIds = (scene: Phaser.Scene): ReadonlySet<string> => {
+  const manifest: unknown = scene.cache.json.get(SPRITE_MANIFEST_KEY);
+  if (
+    typeof manifest !== 'object' ||
+    manifest === null ||
+    !('sets' in manifest)
+  ) {
+    return new Set();
+  }
+  const { sets } = manifest;
+  if (!Array.isArray(sets)) {
+    return new Set();
+  }
+  return new Set(
+    sets.filter((id: unknown): id is string => typeof id === 'string'),
+  );
+};
+
+/**
+ * Enfileira os quadros dos conjuntos listados no manifesto e retorna quantos
+ * arquivos entraram na fila. Cabe à cena iniciar o carregamento.
+ */
+export const enqueueAvailableCharacterSprites = (scene: Phaser.Scene): number => {
+  const available = readAvailableSetIds(scene);
+  let queued = 0;
+  for (const set of allSets()) {
+    if (!available.has(set.id)) {
+      continue;
+    }
     set.frameKeys.forEach((key, index) => {
-      if (!loader.textureManager.exists(key)) {
-        loader.image(key, spriteUrl(`${set.id}-walk-${index}.png`));
+      if (!scene.textures.exists(key)) {
+        scene.load.image(key, spriteUrl(`${set.id}-walk-${index}.png`));
+        queued += 1;
       }
     });
   }
+  return queued;
 };
 
 /** Indica se todos os quadros de um conjunto estão disponíveis na textura. */
@@ -83,8 +126,7 @@ export const spriteSetAvailable = (
 
 /** Cria as animações de caminhada uma única vez por jogo. */
 export const ensureCharacterAnimations = (scene: Phaser.Scene): void => {
-  const sets = [PLAYER_SPRITE_SET, ...Object.values(ENEMY_SPRITE_SETS)];
-  for (const set of sets) {
+  for (const set of allSets()) {
     if (
       scene.anims.exists(set.walkAnimationKey) ||
       !spriteSetAvailable(scene, set)
