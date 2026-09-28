@@ -41,6 +41,7 @@ import { createUpgradePreview } from '../domain/upgrades/upgradePresentation';
 import type { ExpeditionScene } from '../game/scenes/ExpeditionScene';
 import { withChecksum, type GameSave } from '../domain/saving/saveModel';
 import { SaveService } from '../services/storage/SaveService';
+import { artImageUrl, loadArtManifest } from './artManifest';
 
 const MOVEMENT_BINDINGS_STORAGE_KEY = 'ultima-companhia-movement-bindings';
 
@@ -96,6 +97,8 @@ export class AppController {
     this.configureTouchControls();
     this.loadSettings();
     this.save = await this.service.load();
+    await loadArtManifest();
+    this.applyCharacterPortrait();
     this.renderGuild();
     this.renderThreat();
     this.renderCodex();
@@ -374,6 +377,15 @@ export class AppController {
         item.append(label, value);
         stats.append(item);
       });
+      const iconUrl = artImageUrl(`icon-${upgrade.id}`);
+      if (iconUrl !== undefined) {
+        const icon = document.createElement('img');
+        icon.className = 'upgrade-icon';
+        icon.src = iconUrl;
+        icon.alt = '';
+        icon.decoding = 'async';
+        button.append(icon);
+      }
       button.append(number, kind, tier, title, description, stats);
       button.addEventListener('click', () => this.selectUpgrade(upgrade.id));
       wrapper.append(button);
@@ -762,6 +774,7 @@ export class AppController {
     art.dataset.discovered = String(discovered);
     art.dataset.visualProfile = entry.visualProfile;
     element<HTMLElement>('codex-sigil').textContent = discovered ? entry.sigil : '?';
+    this.applyCodexArt(entry, discovered);
     element<HTMLElement>('codex-discovery-state').textContent = mastered
       ? 'Registro completo'
       : discovered
@@ -792,6 +805,49 @@ export class AppController {
       hint.append(term, value);
       stats.append(hint);
     }
+  }
+
+  private applyCharacterPortrait(): void {
+    const url = artImageUrl('portrait-brutamontes');
+    if (url === undefined) {
+      return;
+    }
+    const svg = document.querySelector<SVGSVGElement>('.character-portrait svg');
+    if (!svg) {
+      return;
+    }
+    const image = document.createElement('img');
+    image.className = 'art-portrait';
+    image.src = url;
+    image.alt = 'Retrato do Brutamontes';
+    image.decoding = 'async';
+    svg.replaceWith(image);
+  }
+
+  private applyCodexArt(entry: CodexEntry, discovered: boolean): void {
+    const art = element<HTMLElement>('codex-art');
+    const sigil = element<HTMLElement>('codex-sigil');
+    const url = artImageUrl(`icon-${entry.contentId}`);
+    let image = art.querySelector<HTMLImageElement>('.codex-art-image');
+    if (!discovered || url === undefined) {
+      if (image) {
+        image.hidden = true;
+      }
+      sigil.hidden = false;
+      return;
+    }
+    if (!image) {
+      image = document.createElement('img');
+      image.className = 'codex-art-image';
+      image.alt = '';
+      image.decoding = 'async';
+      art.append(image);
+    }
+    if (!image.src.endsWith(url)) {
+      image.src = url;
+    }
+    image.hidden = false;
+    sigil.hidden = true;
   }
 
   private turnCodexPage(direction: -1 | 1): void {
