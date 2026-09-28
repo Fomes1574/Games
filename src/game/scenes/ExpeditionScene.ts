@@ -87,6 +87,7 @@ import {
   type ResultDetail,
 } from '../events';
 
+import { artTextureAvailable, artTextureKey } from '../visuals/artCatalog';
 import {
   ENEMY_SPRITE_SETS,
   PLAYER_SPRITE_SET,
@@ -537,11 +538,23 @@ export class ExpeditionScene extends Phaser.Scene {
   }
 
   private drawArena(): void {
+    const groundKey = artTextureKey('ground-tile');
+    const hasPaintedGround =
+      groundKey !== undefined && artTextureAvailable(this, 'ground-tile');
+
+    if (hasPaintedGround && groundKey) {
+      this.add
+        .tileSprite(0, 0, WORLD_SIZE, WORLD_SIZE, groundKey)
+        .setOrigin(0)
+        .setDepth(-72)
+        .setAlpha(0.92);
+    }
+
     const floor = this.add.graphics();
     floor.setDepth(-70);
-    floor.fillStyle(0x0c1115, 0.78);
+    floor.fillStyle(0x0c1115, hasPaintedGround ? 0.34 : 0.78);
     floor.fillRect(0, 0, WORLD_SIZE, WORLD_SIZE);
-    floor.lineStyle(1, 0x283039, 0.18);
+    floor.lineStyle(1, 0x283039, hasPaintedGround ? 0.1 : 0.18);
     for (let coordinate = 0; coordinate <= WORLD_SIZE; coordinate += 160) {
       floor.lineBetween(coordinate, 0, coordinate, WORLD_SIZE);
       floor.lineBetween(0, coordinate, WORLD_SIZE, coordinate);
