@@ -2456,3 +2456,51 @@ body.reduced-effects .codex-book.is-turning .codex-detail-page {
     grid-template-columns: 1fr;
   }
 }
+
+/* ------------------------------------------------------------------
+ * Arte pintada por IA (pacote de design 0.8.0)
+ * Aplicada apenas quando os arquivos estão publicados; caso contrário
+ * os visuais procedurais originais permanecem ativos.
+ * ------------------------------------------------------------------ */
+
+.character-portrait .art-portrait {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+  filter: saturate(0.94) contrast(1.05) drop-shadow(0 16px 24px rgb(0 0 0 / 70%));
+}
+
+.upgrade-card .upgrade-icon {
+  width: 58px;
+  height: 58px;
+  margin: -0.2rem 0 0.15rem;
+  border: 1px solid rgb(208 159 105 / 30%);
+  border-radius: 10px;
+  padding: 5px;
+  background:
+    radial-gradient(circle at 50% 32%, rgb(62 44 38 / 92%), rgb(9 10 13 / 96%));
+  box-shadow:
+    0 10px 22px rgb(0 0 0 / 42%),
+    inset 0 1px rgb(255 255 255 / 6%);
+  object-fit: contain;
+}
+
+.upgrade-card:hover .upgrade-icon,
+.upgrade-card:focus-visible .upgrade-icon {
+  border-color: rgb(226 138 82 / 62%);
+}
+
+.codex-art .codex-art-image {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 2rem;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 30px rgb(0 0 0 / 66%));
+}
