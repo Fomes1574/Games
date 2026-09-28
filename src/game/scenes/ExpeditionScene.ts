@@ -87,6 +87,14 @@ import {
   type ResultDetail,
 } from '../events';
 
+import {
+  ENEMY_SPRITE_SETS,
+  PLAYER_SPRITE_SET,
+  ensureCharacterAnimations,
+  spriteSetAvailable,
+  type CharacterSpriteSet,
+} from '../visuals/spriteCatalog';
+
 interface ExpeditionData {
   seed?: number;
   permanentUpgrades?: PermanentUpgradeLevels;
@@ -100,6 +108,8 @@ interface EnemyActor {
   definition: EnemyDefinition;
   shape: Phaser.GameObjects.Arc;
   statusRing: Phaser.GameObjects.Arc;
+  sprite?: Phaser.GameObjects.Sprite;
+  spriteSet?: CharacterSpriteSet;
   health: number;
   maximumHealth: number;
   contactCooldown: number;
@@ -205,6 +215,7 @@ export class ExpeditionScene extends Phaser.Scene {
   private threat: ThreatModifiers = threatModifiers(1);
   private player?: Phaser.GameObjects.Container;
   private playerBody?: Phaser.GameObjects.Arc;
+  private playerSprite?: Phaser.GameObjects.Sprite;
   private enemies: EnemyActor[] = [];
   private projectiles: Projectile[] = [];
   private pickups: Pickup[] = [];
@@ -281,6 +292,7 @@ export class ExpeditionScene extends Phaser.Scene {
 
   public create(data: ExpeditionData): void {
     this.resetState(data);
+    ensureCharacterAnimations(this);
     this.cameras.main.setBackgroundColor('#090b10');
     this.physics.world.setBounds(0, 0, WORLD_SIZE, WORLD_SIZE);
     this.createParallaxBackground();
@@ -635,6 +647,21 @@ export class ExpeditionScene extends Phaser.Scene {
     container.setDepth(50);
     this.player = container;
     this.playerBody = body;
+    this.playerSprite = undefined;
+
+    if (spriteSetAvailable(this, PLAYER_SPRITE_SET)) {
+      body.setVisible(false);
+      facing.setVisible(false);
+      const sprite = this.add.sprite(
+        0,
+        PLAYER_RADIUS * 0.85,
+        PLAYER_SPRITE_SET.idleFrameKey,
+      );
+      sprite.setOrigin(0.5, 1);
+      sprite.setScale((PLAYER_RADIUS * 4.2) / PLAYER_SPRITE_SET.frameHeight);
+      container.add(sprite);
+      this.playerSprite = sprite;
+    }
   }
 
   private configureInput(): void {
@@ -727,7 +754,23 @@ export class ExpeditionScene extends Phaser.Scene {
         PLAYER_RADIUS,
         WORLD_SIZE - PLAYER_RADIUS,
       );
-      this.player.rotation = Math.atan2(vertical, horizontal) + Math.PI / 2;
+      if (this.playerSprite) {
+        this.player.rotation = 0;
+        if (horizontal !== 0) {
+          this.playerSprite.setFlipX(
+            PLAYER_SPRITE_SET.facesRight ? horizontal < 0 : horizontal > 0,
+          );
+        }
+        if (!this.playerSprite.anims.isPlaying) {
+          this.playerSprite.play(PLAYER_SPRITE_SET.walkAnimationKey);
+        } else if (this.playerSprite.anims.isPaused) {
+          this.playerSprite.anims.resume();
+        }
+      } else {
+        this.player.rotation = Math.atan2(vertical, horizontal) + Math.PI / 2;
+      }
+    } else if (this.playerSprite?.anims.isPlaying) {
+      this.playerSprite.anims.pause();
     }
   }
 
@@ -836,6 +879,16 @@ export class ExpeditionScene extends Phaser.Scene {
     };
   }
 
+  private enemySpriteScale(
+    definition: EnemyDefinition,
+    spriteSet: CharacterSpriteSet,
+  ): number {
+    return (
+      (definition.radius * 2.9 * definition.visual.baseScale) /
+      spriteSet.frameHeight
+    );
+  }
+
   private spawnEnemy(
     definition: EnemyDefinition,
     position?: { x: number; y: number },
@@ -901,6 +954,32 @@ export class ExpeditionScene extends Phaser.Scene {
       ease: 'Cubic.Out',
     });
 
+    const spriteSet = ENEMY_SPRITE_SETS[definition.visual.profileId];
+    let sprite: Phaser.GameObjects.Sprite | undefined;
+    if (spriteSet && spriteSetAvailable(this, spriteSet)) {
+      shape.setVisible(false);
+      sprite = this.add.sprite(
+        x,
+        y + definition.radius * 0.85,
+        spriteSet.idleFrameKey,
+      );
+      sprite.setOrigin(0.5, 1);
+      sprite.setDepth(definition.role === 'boss' ? 45 : 35);
+      const spriteScale = this.enemySpriteScale(definition, spriteSet);
+      sprite.setScale(spriteScale * 0.55);
+      sprite.setAlpha(0.15);
+      sprite.play(spriteSet.walkAnimationKey);
+      sprite.anims.setProgress(this.rng.next());
+      this.tweens.add({
+        targets: sprite,
+        scaleX: spriteScale,
+        scaleY: spriteScale,
+        alpha: definition.role === 'boss' ? 1 : 0.95,
+        duration: this.reducedEffects ? 80 : 220,
+        ease: 'Cubic.Out',
+      });
+    }
+
     const difficulty =
       (1 + Math.min(1.2, this.elapsed / 360)) * this.threat.healthMultiplier;
     this.enemies.push({
@@ -908,6 +987,8 @@ export class ExpeditionScene extends Phaser.Scene {
       definition,
       shape,
       statusRing,
+      sprite,
+      spriteSet,
       health: definition.health * difficulty,
       maximumHealth: definition.health * difficulty,
       contactCooldown: 0,
@@ -959,6 +1040,16 @@ export class ExpeditionScene extends Phaser.Scene {
           (deltaY / distance) * enemy.definition.speed * speedScale * moveDirection * step;
       }
       enemy.statusRing.setPosition(enemy.shape.x, enemy.shape.y);
+      if (enemy.sprite && enemy.spriteSet) {
+        enemy.sprite.setPosition(
+          enemy.shape.x,
+          enemy.shape.y + enemy.definition.radius * 0.85,
+        );
+        const movingRight = deltaX >= 0;
+        enemy.sprite.setFlipX(
+          enemy.spriteSet.facesRight ? !movingRight : movingRight,
+        );
+      }
 
       if (distance <= enemy.definition.radius + PLAYER_RADIUS && enemy.contactCooldown <= 0) {
         this.damagePlayer(enemy.definition.damage * this.enemyDamageMultiplier(enemy));
@@ -1809,6 +1900,21 @@ export class ExpeditionScene extends Phaser.Scene {
       scaleY: enemy.definition.visual.baseScale,
       duration: 90,
     });
+    if (enemy.sprite && enemy.spriteSet) {
+      const baseSpriteScale = this.enemySpriteScale(
+        enemy.definition,
+        enemy.spriteSet,
+      );
+      enemy.sprite.setScale(baseSpriteScale * 1.12);
+      enemy.sprite.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
+      this.tweens.add({
+        targets: enemy.sprite,
+        scaleX: baseSpriteScale,
+        scaleY: baseSpriteScale,
+        duration: 90,
+      });
+      this.time.delayedCall(70, () => enemy.sprite?.clearTint());
+    }
     if (enemy.health <= 0) {
       this.killEnemy(enemy);
     }
@@ -1826,6 +1932,20 @@ export class ExpeditionScene extends Phaser.Scene {
     this.enemies.splice(index, 1);
     enemy.shape.destroy();
     enemy.statusRing.destroy();
+    if (enemy.sprite) {
+      const fallen = enemy.sprite;
+      enemy.sprite = undefined;
+      this.tweens.add({
+        targets: fallen,
+        alpha: 0,
+        scaleX: fallen.scaleX * 0.6,
+        scaleY: fallen.scaleY * 0.6,
+        y: fallen.y + 12,
+        duration: this.reducedEffects ? 70 : 220,
+        ease: 'Cubic.In',
+        onComplete: () => fallen.destroy(),
+      });
+    }
     this.kills += 1;
     this.killsByEnemy[enemy.definition.id] =
       (this.killsByEnemy[enemy.definition.id] ?? 0) + 1;
@@ -2154,7 +2274,11 @@ export class ExpeditionScene extends Phaser.Scene {
       this.cameras.main.shake(70, 0.0025);
     }
     this.playerBody?.setFillStyle(0xe08a62, 1);
-    this.time.delayedCall(80, () => this.playerBody?.setFillStyle(0xb76538, 1));
+    this.playerSprite?.setTint(0xe08a62);
+    this.time.delayedCall(80, () => {
+      this.playerBody?.setFillStyle(0xb76538, 1);
+      this.playerSprite?.clearTint();
+    });
     if (this.stats.health <= 0) {
       if (this.resurrectionCharges > 0) {
         this.resurrectionCharges -= 1;
@@ -2173,6 +2297,7 @@ export class ExpeditionScene extends Phaser.Scene {
       return;
     }
     this.playerBody?.setFillStyle(0xe7d18a, 1);
+    this.playerSprite?.setTint(0xe7d18a);
     const halo = this.add
       .circle(this.player.x, this.player.y, 40, 0xf3d884, 0.12)
       .setStrokeStyle(5, 0xffedaa, 0.9)
@@ -2186,7 +2311,10 @@ export class ExpeditionScene extends Phaser.Scene {
       duration: this.reducedEffects ? 180 : 680,
       onComplete: () => halo.destroy(),
     });
-    this.time.delayedCall(1_000, () => this.playerBody?.setFillStyle(0xb76538, 1));
+    this.time.delayedCall(1_000, () => {
+      this.playerBody?.setFillStyle(0xb76538, 1);
+      this.playerSprite?.clearTint();
+    });
   }
 
   private findNearestEnemy(x: number, y: number): EnemyActor | undefined {
@@ -2422,6 +2550,8 @@ export class ExpeditionScene extends Phaser.Scene {
         .setBlendMode(Phaser.BlendModes.ADD);
 
       this.playerBody?.setFillStyle(0x2a2024, 1);
+      this.playerSprite?.setTint(0x2a2024);
+      this.playerSprite?.anims.stop();
       if (!this.reducedEffects) {
         this.cameras.main.shake(240, 0.006);
         this.cameras.main.flash(180, 105, 21, 26);
@@ -2654,6 +2784,7 @@ export class ExpeditionScene extends Phaser.Scene {
     this.enemies.forEach((enemy) => {
       enemy.shape.destroy();
       enemy.statusRing.destroy();
+      enemy.sprite?.destroy();
     });
     this.clearDivineAuraField();
     this.parallaxLayers.forEach((layer) => layer.tile.destroy());
