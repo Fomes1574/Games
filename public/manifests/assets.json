@@ -14,6 +14,132 @@
       "status": "placeholder",
       "required": true,
       "source": "src/game/scenes/ExpeditionScene.ts"
+    },
+    {
+      "id": "sprite.brutamontes.walk",
+      "kind": "spritesheet",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/sprites/brutamontes-walk-0.png",
+      "frames": 4,
+      "description": "Ciclo de caminhada de Brutamontes gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+    },
+    {
+      "id": "sprite.crawler.walk",
+      "kind": "spritesheet",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/sprites/crawler-walk-0.png",
+      "frames": 4,
+      "description": "Ciclo de caminhada de Rastejante da Cinza gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+    },
+    {
+      "id": "sprite.runner.walk",
+      "kind": "spritesheet",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/sprites/runner-walk-0.png",
+      "frames": 4,
+      "description": "Ciclo de caminhada de Cão da Vigília gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+    },
+    {
+      "id": "sprite.cultist.walk",
+      "kind": "spritesheet",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/sprites/cultist-walk-0.png",
+      "frames": 4,
+      "description": "Ciclo de caminhada de Cultista da Bruma gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+    },
+    {
+      "id": "sprite.armored-penitent.walk",
+      "kind": "spritesheet",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/sprites/armored-penitent-walk-0.png",
+      "frames": 4,
+      "description": "Ciclo de caminhada de Penitente Blindado gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+    },
+    {
+      "id": "sprite.ruin-herald.walk",
+      "kind": "spritesheet",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/sprites/ruin-herald-walk-0.png",
+      "frames": 4,
+      "description": "Ciclo de caminhada de Arauto da Ruína gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+    },
+    {
+      "id": "sprite.sepulchral-guardian.walk",
+      "kind": "spritesheet",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/sprites/sepulchral-guardian-walk-0.png",
+      "frames": 4,
+      "description": "Ciclo de caminhada de Guardião Sepulcral gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+    },
+    {
+      "id": "sprite.ash-summoner.walk",
+      "kind": "spritesheet",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/sprites/ash-summoner-walk-0.png",
+      "frames": 4,
+      "description": "Ciclo de caminhada de Invocador da Cinza gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+    },
+    {
+      "id": "sprite.plague-sower.walk",
+      "kind": "spritesheet",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/sprites/plague-sower-walk-0.png",
+      "frames": 4,
+      "description": "Ciclo de caminhada de Semeador da Praga gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+    },
+    {
+      "id": "sprite.shattered.walk",
+      "kind": "spritesheet",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/sprites/shattered-walk-0.png",
+      "frames": 4,
+      "description": "Ciclo de caminhada de Estilhaçado gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+    },
+    {
+      "id": "sprite.pale-priest.walk",
+      "kind": "spritesheet",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/sprites/pale-priest-walk-0.png",
+      "frames": 4,
+      "description": "Ciclo de caminhada de Sacerdote Pálido gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+    },
+    {
+      "id": "sprite.mist-hunter.walk",
+      "kind": "spritesheet",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/sprites/mist-hunter-walk-0.png",
+      "frames": 4,
+      "description": "Ciclo de caminhada de Caçador da Bruma gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+    },
+    {
+      "id": "sprite.corrupted-executioner.walk",
+      "kind": "spritesheet",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/sprites/corrupted-executioner-walk-0.png",
+      "frames": 4,
+      "description": "Ciclo de caminhada de Carrasco Corrompido gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+    },
+    {
+      "id": "sprite.plague-bishop.walk",
+      "kind": "spritesheet",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/sprites/plague-bishop-walk-0.png",
+      "frames": 4,
+      "description": "Ciclo de caminhada de Bispo da Peste gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
     }
   ]
 }

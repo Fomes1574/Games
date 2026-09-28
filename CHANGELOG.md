@@ -2,6 +2,20 @@
 
 Todas as mudanças relevantes serão registradas neste arquivo.
 
+## 0.7.0 — 2026-09-28
+
+### Adicionado
+
+- Sprites gerados por IA para o Brutamontes, onze inimigos, a elite Carrasco Corrompido e o chefe Bispo da Peste, seguindo a `docs/ART_BIBLE.md`.
+- Ciclos de caminhada de quatro quadros por personagem, normalizados com pivô nos pés e escala estável (`public/assets/sprites`, PNG com transparência).
+- Catálogo `src/game/visuals/spriteCatalog.ts` com carregamento guiado por manifesto na `BootScene`, animações compartilhadas e espelhamento horizontal por direção de movimento.
+- Manifesto `public/assets/sprites/manifest.json` lista os conjuntos publicados e evita erros de console enquanto os PNGs não estiverem no ar.
+- Surgimento, impacto (flash branco e pulso de escala) e dissipação de morte animados nos sprites; flashes de dano, cura, ressurreição e morte do jogador agora tingem o sprite.
+
+### Alterado
+
+- Círculos procedurais de personagens ficam invisíveis quando o sprite correspondente está disponível, preservando hitboxes, telegrafia e a API de testes.
+
 ## 0.6.0 — 2026-07-31
 
 ### Adicionado
