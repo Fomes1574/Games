@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 
+import { preloadCharacterSprites } from '../visuals/spriteCatalog';
+
 interface Ember {
   glow: Phaser.GameObjects.Arc;
   speed: number;
@@ -19,6 +21,10 @@ export class BootScene extends Phaser.Scene {
 
   public constructor() {
     super('boot');
+  }
+
+  public preload(): void {
+    preloadCharacterSprites(this.load);
   }
 
   public create(): void {
