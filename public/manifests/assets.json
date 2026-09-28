@@ -22,7 +22,7 @@
       "required": false,
       "source": "public/assets/sprites/brutamontes-walk-0.png",
       "frames": 4,
-      "description": "Ciclo de caminhada de Brutamontes gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+      "description": "Ciclo de caminhada de Brutamontes gerado por IA e normalizado (pivô nos pés)."
     },
     {
       "id": "sprite.crawler.walk",
@@ -31,7 +31,7 @@
       "required": false,
       "source": "public/assets/sprites/crawler-walk-0.png",
       "frames": 4,
-      "description": "Ciclo de caminhada de Rastejante da Cinza gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+      "description": "Ciclo de caminhada de Rastejante da Cinza gerado por IA e normalizado (pivô nos pés)."
     },
     {
       "id": "sprite.runner.walk",
@@ -40,7 +40,7 @@
       "required": false,
       "source": "public/assets/sprites/runner-walk-0.png",
       "frames": 4,
-      "description": "Ciclo de caminhada de Cão da Vigília gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+      "description": "Ciclo de caminhada de Cão da Vigília gerado por IA e normalizado (pivô nos pés)."
     },
     {
       "id": "sprite.cultist.walk",
@@ -49,7 +49,7 @@
       "required": false,
       "source": "public/assets/sprites/cultist-walk-0.png",
       "frames": 4,
-      "description": "Ciclo de caminhada de Cultista da Bruma gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+      "description": "Ciclo de caminhada de Cultista da Bruma gerado por IA e normalizado (pivô nos pés)."
     },
     {
       "id": "sprite.armored-penitent.walk",
@@ -58,7 +58,7 @@
       "required": false,
       "source": "public/assets/sprites/armored-penitent-walk-0.png",
       "frames": 4,
-      "description": "Ciclo de caminhada de Penitente Blindado gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+      "description": "Ciclo de caminhada de Penitente Blindado gerado por IA e normalizado (pivô nos pés)."
     },
     {
       "id": "sprite.ruin-herald.walk",
@@ -67,7 +67,7 @@
       "required": false,
       "source": "public/assets/sprites/ruin-herald-walk-0.png",
       "frames": 4,
-      "description": "Ciclo de caminhada de Arauto da Ruína gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+      "description": "Ciclo de caminhada de Arauto da Ruína gerado por IA e normalizado (pivô nos pés)."
     },
     {
       "id": "sprite.sepulchral-guardian.walk",
@@ -76,7 +76,7 @@
       "required": false,
       "source": "public/assets/sprites/sepulchral-guardian-walk-0.png",
       "frames": 4,
-      "description": "Ciclo de caminhada de Guardião Sepulcral gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+      "description": "Ciclo de caminhada de Guardião Sepulcral gerado por IA e normalizado (pivô nos pés)."
     },
     {
       "id": "sprite.ash-summoner.walk",
@@ -85,7 +85,7 @@
       "required": false,
       "source": "public/assets/sprites/ash-summoner-walk-0.png",
       "frames": 4,
-      "description": "Ciclo de caminhada de Invocador da Cinza gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+      "description": "Ciclo de caminhada de Invocador da Cinza gerado por IA e normalizado (pivô nos pés)."
     },
     {
       "id": "sprite.plague-sower.walk",
@@ -94,7 +94,7 @@
       "required": false,
       "source": "public/assets/sprites/plague-sower-walk-0.png",
       "frames": 4,
-      "description": "Ciclo de caminhada de Semeador da Praga gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+      "description": "Ciclo de caminhada de Semeador da Praga gerado por IA e normalizado (pivô nos pés)."
     },
     {
       "id": "sprite.shattered.walk",
@@ -103,7 +103,7 @@
       "required": false,
       "source": "public/assets/sprites/shattered-walk-0.png",
       "frames": 4,
-      "description": "Ciclo de caminhada de Estilhaçado gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+      "description": "Ciclo de caminhada de Estilhaçado gerado por IA e normalizado (pivô nos pés)."
     },
     {
       "id": "sprite.pale-priest.walk",
@@ -112,7 +112,7 @@
       "required": false,
       "source": "public/assets/sprites/pale-priest-walk-0.png",
       "frames": 4,
-      "description": "Ciclo de caminhada de Sacerdote Pálido gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+      "description": "Ciclo de caminhada de Sacerdote Pálido gerado por IA e normalizado (pivô nos pés)."
     },
     {
       "id": "sprite.mist-hunter.walk",
@@ -121,7 +121,7 @@
       "required": false,
       "source": "public/assets/sprites/mist-hunter-walk-0.png",
       "frames": 4,
-      "description": "Ciclo de caminhada de Caçador da Bruma gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+      "description": "Ciclo de caminhada de Caçador da Bruma gerado por IA e normalizado (pivô nos pés)."
     },
     {
       "id": "sprite.corrupted-executioner.walk",
@@ -130,7 +130,7 @@
       "required": false,
       "source": "public/assets/sprites/corrupted-executioner-walk-0.png",
       "frames": 4,
-      "description": "Ciclo de caminhada de Carrasco Corrompido gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+      "description": "Ciclo de caminhada de Carrasco Corrompido gerado por IA e normalizado (pivô nos pés)."
     },
     {
       "id": "sprite.plague-bishop.walk",
@@ -139,7 +139,79 @@
       "required": false,
       "source": "public/assets/sprites/plague-bishop-walk-0.png",
       "frames": 4,
-      "description": "Ciclo de caminhada de Bispo da Peste gerado por IA e normalizado (pivô nos pés). (upload manual pendente)"
+      "description": "Ciclo de caminhada de Bispo da Peste gerado por IA e normalizado (pivô nos pés)."
+    },
+    {
+      "id": "art.menu-backdrop",
+      "kind": "image",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/art/menu-backdrop.jpg",
+      "description": "Pintura de fundo do menu inicial: charneca noturna, lua eclipsada e cidadela em ruínas."
+    },
+    {
+      "id": "art.ground-tile",
+      "kind": "image",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/art/ground-tile.jpg",
+      "description": "Textura contínua de solo da Charneca dos Sinos para o piso da expedição."
+    },
+    {
+      "id": "art.portrait-brutamontes",
+      "kind": "image",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/art/portrait-brutamontes.jpg",
+      "description": "Retrato pintado do Brutamontes para a sala de preparação."
+    },
+    {
+      "id": "art.icon-executioner-axe",
+      "kind": "icon",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/art/icon-executioner-axe.png",
+      "description": "Ícone da arma Machado do Carrasco."
+    },
+    {
+      "id": "art.icon-watch-crossbow",
+      "kind": "icon",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/art/icon-watch-crossbow.png",
+      "description": "Ícone da arma Besta da Vigília."
+    },
+    {
+      "id": "art.icon-celestial-aura",
+      "kind": "icon",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/art/icon-celestial-aura.png",
+      "description": "Ícone da arma Aura Celestial."
+    },
+    {
+      "id": "art.icon-widow-venom",
+      "kind": "icon",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/art/icon-widow-venom.png",
+      "description": "Ícone da arma Peçonha da Viúva."
+    },
+    {
+      "id": "art.icon-spear",
+      "kind": "icon",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/art/icon-spear.png",
+      "description": "Ícone da arma Lança."
+    },
+    {
+      "id": "art.icon-ash-lantern",
+      "kind": "icon",
+      "status": "approved",
+      "required": false,
+      "source": "public/assets/art/icon-ash-lantern.png",
+      "description": "Ícone da arma Lanterna de Cinzas."
     }
   ]
 }

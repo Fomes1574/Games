@@ -2,6 +2,19 @@
 
 Todas as mudanças relevantes serão registradas neste arquivo.
 
+## 0.8.0 — 2026-09-29
+
+### Adicionado
+
+- Pacote de design visual gerado por IA: pintura de fundo do menu, textura de piso da Charneca dos Sinos, retrato do Brutamontes e ícones das seis armas.
+- Catálogo de arte (`src/game/visuals/artCatalog.ts` + `src/ui/artManifest.ts`) guiado por `public/assets/art/manifest.json`: o jogo e a interface só requisitam os arquivos listados, mantendo o console limpo enquanto os binários não estiverem publicados.
+- Ícones pintados nas cartas de melhoria e nas páginas de armas do Grimório; retrato pintado na sala de preparação substituindo o sigilo vetorial.
+
+### Alterado
+
+- Menu inicial usa a pintura `menu-backdrop` com paralaxe suave quando disponível; sem o arquivo, o cenário procedural original continua ativo.
+- Piso da expedição usa a textura `ground-tile` quando disponível, com véu de escurecimento, grade e ruínas preservados para legibilidade de combate.
+
 ## 0.7.0 — 2026-09-28
 
 ### Adicionado
